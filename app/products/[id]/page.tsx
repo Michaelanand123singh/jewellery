@@ -1,0 +1,461 @@
+"use client";
+import { useState, useEffect, useRef } from "react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import Header from "@/components/layout/Header";
+import Footer from "@/components/layout/Footer";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Heart, ShoppingCart, Star, Check } from "lucide-react";
+import { useCartStore, useWishlistStore, Product } from "@/lib/store";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import ProductCard from "@/components/home/ProductCard";
+import Link from "next/link";
+import { dedupedFetch } from "@/lib/fetch";
+import { ImageZoom } from "@/components/ui/image-zoom";
+
+export default function ProductPage({
+  params,
+}: {
+  params: { id: string } | Promise<{ id: string }>;
+}) {
+  const router = useRouter();
+  const [product, setProduct] = useState<Product | null>(null);
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(0);
+  const [quantity, setQuantity] = useState(1);
+  const addToCart = useCartStore((state) => state.addItem);
+  const addToWishlist = useWishlistStore((state) => state.addItem);
+  // Must call hook unconditionally - use empty string as default if product not loaded yet
+  const isInWishlist = useWishlistStore((state) =>
+    state.isInWishlist(product?.id || "")
+  );
+  const hasFetched = useRef<string | null>(null);
+  const currentProductIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    // Immediately reset states when params change (synchronous)
+    // This prevents 404 flash by ensuring loading state is set before async operations
+    setLoading(true);
+    setNotFound(false);
+
+    const fetchProduct = async () => {
+      try {
+        // Handle params - could be a Promise or object
+        let productId: string;
+        if (params instanceof Promise) {
+          const resolvedParams = await params;
+          productId = resolvedParams.id;
+        } else {
+          productId = params.id;
+        }
+
+        // If navigating to a different product, clear old data
+        if (
+          currentProductIdRef.current !== null &&
+          currentProductIdRef.current !== productId
+        ) {
+          setProduct(null);
+          setRelatedProducts([]);
+          hasFetched.current = null;
+          setLoading(true); // Ensure loading state when switching products
+        }
+
+        // Validate productId
+        if (!productId) {
+          setNotFound(true);
+          setLoading(false);
+          currentProductIdRef.current = productId || null;
+          return;
+        }
+
+        // Track current product and proceed with fetch
+        // dedupedFetch will handle request deduplication at the network level
+        if (hasFetched.current !== productId) {
+          hasFetched.current = productId;
+        }
+        currentProductIdRef.current = productId;
+
+        const productData = await dedupedFetch<{ success: boolean; data: any }>(
+          `/api/products/${encodeURIComponent(productId)}`
+        );
+
+        if (productData.success && productData.data) {
+          setProduct(productData.data);
+
+          // Fetch related products from same category
+          const category = productData.data.category || "women";
+          const relatedData = await dedupedFetch<{
+            success: boolean;
+            data: Product[];
+          }>(`/api/products?category=${encodeURIComponent(category)}&limit=5`);
+
+          if (relatedData.success) {
+            const filtered = relatedData.data.filter(
+              (p: Product) => p.id !== productId
+            );
+            setRelatedProducts(filtered.slice(0, 4));
+          }
+        } else {
+          setNotFound(true);
+        }
+      } catch (error) {
+        console.error("Failed to fetch product:", error);
+        setNotFound(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProduct();
+  }, [params]);
+
+  // Show loading state while fetching
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-grow container mx-auto px-4 py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+            <div className="aspect-square bg-muted animate-pulse rounded-lg" />
+            <div className="space-y-4">
+              <div className="h-8 bg-muted animate-pulse rounded w-3/4" />
+              <div className="h-6 bg-muted animate-pulse rounded w-1/2" />
+              <div className="h-12 bg-muted animate-pulse rounded w-full" />
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Show 404 only after loading completes and product doesn't exist
+  if (!loading && (notFound || !product)) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-grow container mx-auto px-4 py-16 flex items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-6xl font-bold mb-4">404</h1>
+            <h2 className="text-2xl font-semibold mb-4">Product Not Found</h2>
+            <p className="text-muted-foreground mb-8">
+              The product you're looking for doesn't exist.
+            </p>
+            <Button onClick={() => router.push("/shop")}>Back to Shop</Button>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  // TypeScript guard: product should exist at this point
+  if (!product) {
+    return null; // Should never reach here, but TypeScript needs this
+  }
+
+  const images = product.images || [product.image];
+
+  const handleAddToCart = async () => {
+    try {
+      await addToCart(product, quantity);
+      toast.success(`${product.name} added to cart!`);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to add to cart");
+    }
+  };
+
+  const handleAddToWishlist = () => {
+    addToWishlist(product);
+    toast.success(`${product.name} added to wishlist!`);
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      <main className="flex-grow container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+          {/* Image Gallery */}
+          <div className="relative z-0">
+            <div className="mb-4">
+              <ImageZoom
+                src={images[selectedImage] || product.image}
+                alt={product.name}
+                zoomLevel={2.5}
+                priority
+              />
+            </div>
+            <div className="grid grid-cols-4 gap-4">
+              {images.map((img, index) => (
+                <button
+                  key={index}
+                  onClick={() => setSelectedImage(index)}
+                  className={cn(
+                    "aspect-square relative rounded-lg overflow-hidden border-2 transition-all",
+                    selectedImage === index
+                      ? "border-primary"
+                      : "border-transparent hover:border-muted"
+                  )}
+                >
+                  <Image
+                    src={img}
+                    alt={`${product.name} ${index + 1}`}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 1024px) 25vw, 12.5vw"
+                  />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Product Info */}
+          <div>
+            <h1 className="text-3xl font-bold mb-4">{product.name}</h1>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center">
+                {[...Array(5)].map((_, i) => (
+                  <Star
+                    key={i}
+                    className={cn(
+                      "h-4 w-4",
+                      i < Math.floor(product.rating || 0)
+                        ? "fill-primary text-primary"
+                        : "text-muted"
+                    )}
+                  />
+                ))}
+              </div>
+              <span className="text-sm text-muted-foreground">
+                ({(product as any).reviewCount || 0} reviews)
+              </span>
+            </div>
+
+            <div className="flex items-baseline gap-4 mb-6">
+              <span className="text-3xl font-bold">₹{product.price}</span>
+              {product.originalPrice && (
+                <>
+                  <span className="text-xl text-muted-foreground line-through">
+                    ₹{product.originalPrice}
+                  </span>
+                  <span className="text-sm bg-destructive text-destructive-foreground px-2 py-1 rounded">
+                    SALE
+                  </span>
+                </>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 mb-6">
+              {product.inStock ? (
+                <>
+                  <Check className="h-5 w-5 text-green-600" />
+                  <span className="text-green-600 font-medium">In Stock</span>
+                </>
+              ) : (
+                <>
+                  <span className="h-5 w-5 text-red-600">✕</span>
+                  <span className="text-red-600 font-medium">Out of Stock</span>
+                </>
+              )}
+              <span className="text-sm text-muted-foreground">
+                SKU: {product.id}
+              </span>
+            </div>
+
+            <div className="space-y-4 mb-6">
+              <div className="flex items-center gap-4">
+                <label className="font-medium">Quantity:</label>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                  >
+                    -
+                  </Button>
+                  <Input
+                    type="number"
+                    min="1"
+                    max={(product as any).stockQuantity || 999}
+                    value={quantity}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value) || 1;
+                      const maxQty = (product as any).stockQuantity || 999;
+                      setQuantity(Math.max(1, Math.min(value, maxQty)));
+                    }}
+                    className="w-20 text-center"
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => {
+                      const maxQty = (product as any).stockQuantity || 999;
+                      setQuantity(Math.min(maxQty, quantity + 1));
+                    }}
+                  >
+                    +
+                  </Button>
+                </div>
+                {(product as any).stockQuantity && (
+                  <span className="text-sm text-muted-foreground">
+                    (Max: {(product as any).stockQuantity})
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="flex gap-4 mb-6">
+              <Button
+                size="lg"
+                className="flex"
+                onClick={handleAddToCart}
+                disabled={!product.inStock}
+              >
+                <ShoppingCart className="h-5 w-5 mr-2" />
+                Add to Cart
+              </Button>
+              <Button size="lg" variant="outline" onClick={handleAddToWishlist}>
+                <Heart
+                  className={cn(
+                    "h-5 w-5",
+                    isInWishlist && "fill-primary text-primary"
+                  )}
+                />
+              </Button>
+            </div>
+
+            <p className="text-muted-foreground">{product.description}</p>
+          </div>
+        </div>
+
+        {/* Product Details Tabs */}
+        <Tabs defaultValue="details" className="mb-12">
+          <TabsList>
+            <TabsTrigger value="details">Details</TabsTrigger>
+            <TabsTrigger value="properties">Properties</TabsTrigger>
+            <TabsTrigger value="warranty">Warranty</TabsTrigger>
+            <TabsTrigger value="reviews">Reviews</TabsTrigger>
+          </TabsList>
+          <TabsContent value="details" className="mt-6">
+            <Card>
+              <CardContent className="pt-6">
+                <p className="mb-4">
+                  {product.description ||
+                    "This exquisite jewelry piece features fine craftsmanship and premium materials."}
+                </p>
+                <ul className="list-disc list-inside space-y-2 text-muted-foreground">
+                  <li>Premium quality materials</li>
+                  <li>Handcrafted with precision</li>
+                  <li>Elegant and timeless design</li>
+                  <li>Perfect for special occasions</li>
+                  <li>Comes with certificate of authenticity</li>
+                </ul>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="properties" className="mt-6">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <span className="font-medium">Material:</span> Gold/Silver
+                  </div>
+                  <div>
+                    <span className="font-medium">Weight:</span> Custom
+                  </div>
+                  <div>
+                    <span className="font-medium">Style:</span> Classic
+                  </div>
+                  <div>
+                    <span className="font-medium">Finish:</span> Polished
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="warranty" className="mt-6">
+            <Card>
+              <CardContent className="pt-6">
+                <p>
+                  All our jewelry comes with a comprehensive warranty covering
+                  manufacturing defects. We offer free repairs within the
+                  warranty period and lifetime maintenance service.
+                </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="reviews" className="mt-6">
+            <Card>
+              <CardContent className="pt-6">
+                {(product as any).reviews &&
+                (product as any).reviews.length > 0 ? (
+                  <div className="space-y-4">
+                    {(product as any).reviews.map(
+                      (review: any, index: number) => (
+                        <div key={review.id || index}>
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="font-medium">
+                              {review.user?.name || "Anonymous"}
+                            </span>
+                            <div className="flex">
+                              {[...Array(5)].map((_, i) => (
+                                <Star
+                                  key={i}
+                                  className={cn(
+                                    "h-4 w-4",
+                                    i < (review.rating || 0)
+                                      ? "fill-primary text-primary"
+                                      : "text-muted"
+                                  )}
+                                />
+                              ))}
+                            </div>
+                            {review.createdAt && (
+                              <span className="text-xs text-muted-foreground ml-auto">
+                                {new Date(
+                                  review.createdAt
+                                ).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+                          {review.comment && (
+                            <p className="text-sm text-muted-foreground">
+                              {review.comment}
+                            </p>
+                          )}
+                        </div>
+                      )
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground text-center py-8">
+                    No reviews yet. Be the first to review this product!
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+
+        {/* Related Products */}
+        {relatedProducts.length > 0 && (
+          <section className="mb-12">
+            <h2 className="text-2xl font-bold mb-6">Related Products</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {relatedProducts.map((relatedProduct) => (
+                <ProductCard key={relatedProduct.id} product={relatedProduct} />
+              ))}
+            </div>
+          </section>
+        )}
+      </main>
+      <Footer />
+    </div>
+  );
+}
