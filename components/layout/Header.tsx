@@ -130,6 +130,14 @@ export default function Header() {
                   <span className="text-muted-foreground">
                     Welcome, {user.name || user.email}
                   </span>
+                  {user.role === "ADMIN" && (
+                    <Link
+                      href="/admin"
+                      className="text-primary hover:text-primary/80 font-semibold"
+                    >
+                      Admin Dashboard
+                    </Link>
+                  )}
                   <Link
                     href="/account"
                     className="text-muted-foreground hover:text-primary"
