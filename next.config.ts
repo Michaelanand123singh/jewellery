@@ -29,12 +29,8 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   output: 'standalone',
-  // Set turbopack.root to resolve the multiple lockfiles warning
-  // This prevents Next.js from auto-detecting a Turbopack workspace
-  // Note: This doesn't enable Turbopack, it just tells Next.js where the root is
-  turbopack: {
-    root: __dirname,
-  },
+  // DO NOT include turbopack config - it causes Next.js to use Turbopack
+  // The multiple lockfiles warning is harmless and can be ignored
   images: {
     remotePatterns: [
       {
