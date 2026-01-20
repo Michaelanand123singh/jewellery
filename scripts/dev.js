@@ -1,10 +1,7 @@
-// Dev script wrapper to ensure webpack is used and binaries are unblocked
-// 
-// ROOT CAUSE: Windows Application Control policy blocks Next.js and Prisma native binaries
-// - Next.js SWC binary blocked → falls back to WASM → tries Turbopack → fails
-// - Prisma query engine blocked → cannot connect to database → fails
-//
-// ROOT LEVEL FIX: Unblock binaries before starting dev server
+// Dev wrapper.
+// With Next.js 16.x, forcing Turbopack off via unsupported patches can break dev.
+// We'll keep the binary-unblock step (useful on some Windows setups) but run
+// normal `next dev`.
 
 const { execSync } = require('child_process');
 const path = require('path');
@@ -16,16 +13,9 @@ try {
   console.log('⚠️  Could not unblock binaries automatically. Continuing anyway...\n');
 }
 
-// Set environment variables to disable Turbopack (for Next.js 16.x compatibility)
 const env = {
   ...process.env,
-  NEXT_PRIVATE_SKIP_TURBO: '1',
-  NEXT_PRIVATE_DISABLE_TURBO: '1',
-  NEXT_PRIVATE_SKIP_TURBO_BUILD: '1',
-  NEXT_PRIVATE_SKIP_TURBO_DEV: '1',
-  NEXT_FORCE_WEBPACK: '1',
-  TURBOPACK: '0',
-  TURBO: '0',
+  NEXT_TELEMETRY_DISABLED: '1',
 };
 
 console.log('🚀 Starting dev server...\n');
