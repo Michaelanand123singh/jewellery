@@ -11,7 +11,7 @@ export default function GradientText({ children, className }: GradientTextProps)
   return (
     <span
       className={cn(
-        "bg-gradient-to-r from-primary via-purple-600 to-pink-600 bg-clip-text text-transparent",
+        "text-foreground",
         className
       )}
     >

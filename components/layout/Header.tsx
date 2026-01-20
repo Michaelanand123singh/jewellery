@@ -15,7 +15,6 @@ import { dedupedFetch } from "@/lib/fetch";
 export default function Header() {
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Product[]>([]);
@@ -174,7 +173,7 @@ export default function Header() {
 
       {/* Main Header */}
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-20 gap-4">
+        <div className="flex items-center justify-between h-16 md:h-20 gap-3 md:gap-4">
           {/* Mobile Menu Button */}
           <Button
             variant="ghost"
@@ -187,11 +186,18 @@ export default function Header() {
 
           {/* Logo */}
           <Link href="/" className="flex-shrink-0">
-            <div className="text-2xl font-bold text-primary">JEWELLERY</div>
+            <Image
+              src="/img/logo-adronx.webp"
+              alt="Adorné"
+              width={160}
+              height={48}
+              priority
+              className="h-10 sm:h-12 md:h-14 w-auto object-contain"
+            />
           </Link>
 
           {/* Search Bar - Desktop */}
-          <div className="hidden md:flex flex-1 max-w-md mx-8">
+          <div className="hidden md:flex flex-1 min-w-0 max-w-md mx-6 lg:mx-8">
             <div ref={searchContainerRef} className="relative w-full">
               <form onSubmit={handleSearchSubmit}>
                 <Input
@@ -282,17 +288,7 @@ export default function Header() {
           </div>
 
           {/* Right Icons */}
-          <div className="flex items-center gap-2">
-            {/* Mobile Search */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="md:hidden"
-              onClick={() => setIsSearchOpen(!isSearchOpen)}
-            >
-              <Search />
-            </Button>
-
+          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
             <Button variant="ghost" size="icon" asChild>
               <Link href="/wishlist">
                 <Heart className="h-5 w-5" />
@@ -319,29 +315,30 @@ export default function Header() {
         </div>
 
         {/* Mobile Search */}
-        {isSearchOpen && (
-          <div className="md:hidden pb-4">
-            <form onSubmit={handleSearchSubmit}>
-              <div className="relative">
-                <Input
-                  type="text"
-                  placeholder="Search products..."
-                  className="pr-10"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-                <Button
-                  type="submit"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
-                >
-                  <Search className="h-4 w-4 text-muted-foreground" />
-                </Button>
-              </div>
-            </form>
-          </div>
-        )}
+        <div className="md:hidden pb-4">
+          <form onSubmit={handleSearchSubmit}>
+            <div className="relative">
+              <Input
+                type="text"
+                placeholder="Search products..."
+                className="pr-10"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() => {
+                  if (searchResults.length > 0) setShowSearchResults(true);
+                }}
+              />
+              <Button
+                type="submit"
+                variant="ghost"
+                size="icon"
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
+              >
+                <Search className="h-4 w-4 text-muted-foreground" />
+              </Button>
+            </div>
+          </form>
+        </div>
       </div>
 
       {/* Navigation */}

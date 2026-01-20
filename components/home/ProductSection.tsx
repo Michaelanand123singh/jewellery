@@ -69,7 +69,7 @@ export default function ProductSection({
   }, [activeFilter, products]);
 
   return (
-    <section className="py-14 bg-background">
+    <section className="py-10 sm:py-12 md:py-14 bg-background">
       {/* Slightly narrower container makes the 4-up cards smaller (closer to the reference UI). */}
       <div className="container mx-auto px-4 max-w-6xl">
         <motion.div
@@ -85,7 +85,7 @@ export default function ProductSection({
         </motion.div>
 
         {/* Filter Pills */}
-        <div className="flex flex-wrap items-center justify-center gap-3 mb-10">
+        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mb-8 sm:mb-10">
           {TOP_STYLE_FILTERS.map((f) => {
             const active = f.key === activeFilter;
             return (
@@ -94,7 +94,7 @@ export default function ProductSection({
                 type="button"
                 onClick={() => setActiveFilter(f.key)}
                 className={cn(
-                  "h-9 px-4 border border-border text-xs font-semibold uppercase tracking-wide transition",
+                  "h-9 px-3 sm:px-4 border border-border text-xs font-semibold uppercase tracking-wide transition",
                   active
                     ? "bg-foreground text-background"
                     : "bg-background text-foreground hover:bg-muted"
@@ -136,7 +136,7 @@ export default function ProductSection({
           </div>
         )}
 
-        <div className="flex justify-center mt-10">
+        <div className="flex justify-center mt-8 sm:mt-10">
           <Button
             variant="outline"
             className="rounded-none px-10 uppercase tracking-wide"

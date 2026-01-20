@@ -38,7 +38,7 @@ export default function HeroSection() {
   const goNext = () => setActive((i) => (i + 1) % slides.length);
 
   return (
-    <section className="relative w-full h-[600px] md:h-[700px] overflow-hidden">
+    <section className="relative w-full h-[380px] sm:h-[480px] md:h-[700px] overflow-hidden">
       {/* Carousel (no content, no gradients) */}
       <div className="absolute inset-0">
         <motion.div
@@ -63,20 +63,20 @@ export default function HeroSection() {
         type="button"
         aria-label="Previous slide"
         onClick={goPrev}
-        className="absolute left-4 top-1/2 -translate-y-1/2 z-10 rounded-full bg-black/30 hover:bg-black/45 text-white p-2 backdrop-blur-sm transition"
+        className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-10 rounded-full bg-black/30 hover:bg-black/45 text-white p-2 sm:p-2.5 backdrop-blur-sm transition"
       >
-        <ChevronLeft className="h-5 w-5" />
+        <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
       </button>
       <button
         type="button"
         aria-label="Next slide"
         onClick={goNext}
-        className="absolute right-4 top-1/2 -translate-y-1/2 z-10 rounded-full bg-black/30 hover:bg-black/45 text-white p-2 backdrop-blur-sm transition"
+        className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-10 rounded-full bg-black/30 hover:bg-black/45 text-white p-2 sm:p-2.5 backdrop-blur-sm transition"
       >
-        <ChevronRight className="h-5 w-5" />
+        <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
       </button>
 
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex gap-2">
+      <div className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-10 flex gap-2">
         {slides.map((_, idx) => (
           <button
             key={idx}
@@ -84,7 +84,7 @@ export default function HeroSection() {
             aria-label={`Go to slide ${idx + 1}`}
             onClick={() => setActive(idx)}
             className={[
-              "h-2.5 w-2.5 rounded-full transition",
+              "h-2 w-2 sm:h-2.5 sm:w-2.5 rounded-full transition",
               idx === active ? "bg-white" : "bg-white/40 hover:bg-white/60",
             ].join(" ")}
           />
