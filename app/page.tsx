@@ -13,7 +13,7 @@ export default function Home() {
       <main className="flex-grow">
         <HeroSection />
         <EverydayDemifineSection />
-        <ProductSection title="Palmonas Top Styles" />
+        <ProductSection title="Adorne Top Styles" />
         <FeaturedProducts />
         <Newsletter />
       </main>
