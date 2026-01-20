@@ -12,10 +12,10 @@ export const revalidate = 60;
 // GET /api/products/:id - Get a single product
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> | { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await Promise.resolve(params);
+    const { id } = await params;
     
     // Optimize query: fetch product and reviews separately to reduce nested query overhead
     const [product, reviews] = await Promise.all([
@@ -86,7 +86,7 @@ export async function GET(
 // PUT /api/products/:id - Update a product (admin only)
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> | { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
@@ -102,7 +102,7 @@ export async function PUT(
       );
     }
 
-    const { id } = await Promise.resolve(params);
+    const { id } = await params;
     logger.request('PUT', `/api/products/${id}`, ip, user.id);
     
     const body = await request.json();
@@ -160,7 +160,7 @@ export async function PUT(
 // DELETE /api/products/:id - Delete a product (admin only)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> | { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
@@ -176,7 +176,7 @@ export async function DELETE(
       );
     }
 
-    const { id } = await Promise.resolve(params);
+    const { id } = await params;
     logger.request('DELETE', `/api/products/${id}`, ip, user.id);
     
     await prisma.product.delete({
