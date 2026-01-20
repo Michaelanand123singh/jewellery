@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma';
 // GET /api/orders/:id - Get a single order
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> | { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getAuthUser(request);
@@ -17,8 +17,7 @@ export async function GET(
       );
     }
 
-    // Handle params - could be a Promise or object (Next.js 15 compatibility)
-    const { id } = await Promise.resolve(params);
+    const { id } = await params;
 
     const order = await prisma.order.findFirst({
       where: {

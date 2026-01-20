@@ -20,7 +20,9 @@ import { ImageZoom } from "@/components/ui/image-zoom";
 export default function ProductPage({
   params,
 }: {
-  params: { id: string } | Promise<{ id: string }>;
+  // Next.js Route Segment config expects params to be a Promise in generated types.
+  // `await params` also works at runtime even if Next passes a plain object.
+  params: Promise<{ id: string }>;
 }) {
   const router = useRouter();
   const [product, setProduct] = useState<Product | null>(null);
@@ -46,14 +48,7 @@ export default function ProductPage({
 
     const fetchProduct = async () => {
       try {
-        // Handle params - could be a Promise or object
-        let productId: string;
-        if (params instanceof Promise) {
-          const resolvedParams = await params;
-          productId = resolvedParams.id;
-        } else {
-          productId = params.id;
-        }
+        const { id: productId } = await params;
 
         // If navigating to a different product, clear old data
         if (

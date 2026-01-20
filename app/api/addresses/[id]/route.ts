@@ -18,7 +18,7 @@ const addressSchema = z.object({
 // PUT /api/addresses/:id - Update an address
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> | { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getAuthUser(request);
@@ -30,7 +30,7 @@ export async function PUT(
       );
     }
 
-    const { id } = await Promise.resolve(params);
+    const { id } = await params;
     const body = await request.json();
     const addressData = addressSchema.parse(body);
 
@@ -86,7 +86,7 @@ export async function PUT(
 // DELETE /api/addresses/:id - Delete an address
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> | { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getAuthUser(request);
@@ -98,7 +98,7 @@ export async function DELETE(
       );
     }
 
-    const { id } = await Promise.resolve(params);
+    const { id } = await params;
 
     const address = await prisma.address.findFirst({
       where: {
