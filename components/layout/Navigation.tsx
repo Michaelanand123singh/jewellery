@@ -53,9 +53,9 @@ export default function Navigation({ isOpen = false, onClose }: NavigationProps)
   return (
     <>
       {/* Desktop Navigation */}
-      <nav className="hidden md:block border-t bg-background">
+      <nav className="hidden md:block bg-background">
         <div className="container mx-auto px-4">
-          <ul className="flex items-center gap-1">
+          <ul className="flex items-center justify-center gap-1">
             {categories.map((category) => (
               <li
                 key={category.name}
@@ -109,7 +109,7 @@ export default function Navigation({ isOpen = false, onClose }: NavigationProps)
 
       {/* Mobile Navigation */}
       {isOpen && (
-        <nav className="md:hidden border-t bg-background">
+        <nav className="md:hidden bg-background">
           <div className="container mx-auto px-4 py-4 space-y-2">
             {categories.map((category) => (
               <div key={category.name}>

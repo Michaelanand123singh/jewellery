@@ -38,17 +38,17 @@ export default function ProductCard({ product }: ProductCardProps) {
 
   return (
     <motion.div
-      whileHover={{ y: -5 }}
+      whileHover={{ y: -3 }}
       transition={{ duration: 0.2 }}
     >
-      <Card className="group overflow-hidden hover:shadow-xl transition-all duration-300 border-2 hover:border-primary/50">
-        <div className="relative aspect-square overflow-hidden bg-muted">
+      <Card className="group overflow-hidden hover:shadow-lg transition-all duration-300 border hover:border-primary/40 rounded-none">
+        <div className="relative aspect-[4/5] overflow-hidden bg-muted">
           <Link href={`/products/${product.id}`} className="block w-full h-full">
             <Image
               src={product.image}
               alt={product.name}
               fill
-              className="object-cover transition-transform duration-300 group-hover:scale-110"
+              className="object-cover transition-transform duration-300 group-hover:scale-[1.06]"
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             />
           </Link>
@@ -56,7 +56,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              className="absolute top-2 left-2 bg-destructive text-destructive-foreground text-xs font-bold px-2 py-1 rounded z-10"
+              className="absolute top-2 left-2 bg-destructive text-destructive-foreground text-[10px] font-bold px-2 py-1 rounded z-10"
             >
               SALE
             </motion.div>
@@ -70,7 +70,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             <Button
               variant="ghost"
               size="icon"
-              className="bg-background/90 backdrop-blur-sm hover:bg-background"
+              className="h-8 w-8 bg-background/90 backdrop-blur-sm hover:bg-background"
               onClick={handleWishlistClick}
             >
               <Heart
@@ -88,18 +88,18 @@ export default function ProductCard({ product }: ProductCardProps) {
             transition={{ duration: 0.2 }}
           >
             <Button
-              className="w-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg"
+              className="w-full h-9 bg-primary text-primary-foreground hover:bg-primary/90 shadow"
               onClick={handleAddToCart}
               disabled={!product.inStock}
             >
               <ShoppingCart className="h-4 w-4 mr-2" />
-              Add to Cart
+              Add to Bag
             </Button>
           </motion.div>
         </div>
-        <CardContent className="p-4">
+        <CardContent className="p-3">
           <Link href={`/products/${product.id}`}>
-            <h3 className="font-semibold mb-2 hover:text-primary transition-colors line-clamp-2">
+            <h3 className="text-sm font-medium mb-2 hover:text-primary transition-colors line-clamp-2">
               {product.name}
             </h3>
           </Link>
@@ -120,11 +120,11 @@ export default function ProductCard({ product }: ProductCardProps) {
             </div>
           )}
         </CardContent>
-        <CardFooter className="p-4 pt-0 flex justify-between items-center">
+        <CardFooter className="p-3 pt-0 flex justify-between items-center">
           <div className="flex items-baseline gap-2">
-            <span className="text-lg font-bold">₹{product.price}</span>
+            <span className="text-base font-semibold">₹{product.price}</span>
             {product.originalPrice && (
-              <span className="text-sm text-muted-foreground line-through">
+              <span className="text-xs text-muted-foreground line-through">
                 ₹{product.originalPrice}
               </span>
             )}

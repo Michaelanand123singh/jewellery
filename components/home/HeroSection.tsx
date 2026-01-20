@@ -1,166 +1,95 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
 import Image from "next/image";
-import GradientText from "@/components/ui/gradient-text";
-import { Sparkles } from "lucide-react";
-import { useEffect, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
 export default function HeroSection() {
+  const slides = useMemo(
+    () => [
+      "/img/slider/1.jpg",
+      "/img/slider/2.jpg",
+      "/img/slider/3.jpg",
+      "/img/slider/4.jpg",
+      "/img/slider/5.jpg",
+      "/img/slider/6.jpg",
+      "/img/slider/7.jpg",
+    ],
+    []
+  );
+
+  const [active, setActive] = useState(0);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Generate sparkle positions only on client
-  const sparkles = mounted
-    ? [...Array(20)].map((_, i) => ({
-        id: i,
-        x: Math.random() * 100,
-        y: Math.random() * 100,
-        delay: Math.random() * 2,
-        duration: 3 + Math.random() * 2,
-      }))
-    : [];
+  useEffect(() => {
+    if (!mounted) return;
+    const id = window.setInterval(() => {
+      setActive((i) => (i + 1) % slides.length);
+    }, 5000);
+    return () => window.clearInterval(id);
+  }, [mounted, slides.length]);
+
+  const goPrev = () => setActive((i) => (i - 1 + slides.length) % slides.length);
+  const goNext = () => setActive((i) => (i + 1) % slides.length);
 
   return (
     <section className="relative w-full h-[600px] md:h-[700px] overflow-hidden">
-      {/* Animated Background */}
+      {/* Carousel (no content, no gradients) */}
       <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-purple-500/20 to-pink-500/20" />
         <motion.div
+          key={slides[active]}
           className="absolute inset-0"
-          initial={{ scale: 1.1 }}
-          animate={{ scale: 1 }}
-          transition={{ duration: 10, repeat: Infinity, repeatType: "reverse" }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6 }}
         >
           <Image
-            src="/img/slider/1.jpg"
-            alt="Hero"
+            src={slides[active]}
+            alt={`Hero slide ${active + 1}`}
             fill
             className="object-cover"
-            priority
+            priority={active === 0}
           />
         </motion.div>
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/40 to-transparent" />
       </div>
 
-      {/* Animated Sparkles */}
-      {mounted &&
-        sparkles.map((sparkle) => (
-          <motion.div
-            key={sparkle.id}
-            className="absolute"
-            style={{
-              left: `${sparkle.x}%`,
-              top: `${sparkle.y}%`,
-            }}
-            initial={{ opacity: 0, scale: 0 }}
-            animate={{
-              opacity: [0, 1, 0],
-              scale: [0, 1, 0],
-            }}
-            transition={{
-              duration: sparkle.duration,
-              repeat: Infinity,
-              delay: sparkle.delay,
-            }}
-          >
-            <Sparkles className="h-2 w-2 text-primary/50" />
-          </motion.div>
-        ))}
-
-      {/* Content */}
-      <div className="container mx-auto px-4 h-full flex items-center relative z-10">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="max-w-2xl"
-        >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2, duration: 0.8 }}
-            className="inline-block mb-4"
-          >
-            <GradientText className="text-sm font-semibold uppercase tracking-wider">
-              Premium Collection
-            </GradientText>
-          </motion.div>
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.8 }}
-            className="text-4xl md:text-6xl font-bold text-white mb-4 leading-tight"
-          >
-            Exquisite Jewelry
-            <br />
-            <GradientText className="text-4xl md:text-6xl">
-              For Every Occasion
-            </GradientText>
-          </motion.h1>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6, duration: 0.8 }}
-            className="text-xl text-white/90 mb-8 max-w-xl"
-          >
-            Discover our stunning collection of handcrafted jewelry pieces
-            that celebrate your unique style and elegance.
-          </motion.p>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8, duration: 0.8 }}
-            className="flex flex-wrap gap-4"
-          >
-            <Button size="lg" className="group" asChild>
-              <Link href="/shop">
-                Shop Now
-                <motion.span
-                  className="ml-2"
-                  animate={{ x: [0, 5, 0] }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
-                >
-                  →
-                </motion.span>
-              </Link>
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="bg-white/10 border-white/20 text-white hover:bg-white/20 backdrop-blur-sm"
-              asChild
-            >
-              <Link href="/shop">Explore Collection</Link>
-            </Button>
-          </motion.div>
-        </motion.div>
-      </div>
-
-      {/* Scroll Indicator */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.2, duration: 0.8 }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2"
+      {/* Controls */}
+      <button
+        type="button"
+        aria-label="Previous slide"
+        onClick={goPrev}
+        className="absolute left-4 top-1/2 -translate-y-1/2 z-10 rounded-full bg-black/30 hover:bg-black/45 text-white p-2 backdrop-blur-sm transition"
       >
-        <motion.div
-          animate={{ y: [0, 10, 0] }}
-          transition={{ duration: 1.5, repeat: Infinity }}
-          className="w-6 h-10 border-2 border-white/50 rounded-full flex justify-center"
-        >
-          <motion.div
-            animate={{ y: [0, 12, 0] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-            className="w-1 h-3 bg-white/50 rounded-full mt-2"
+        <ChevronLeft className="h-5 w-5" />
+      </button>
+      <button
+        type="button"
+        aria-label="Next slide"
+        onClick={goNext}
+        className="absolute right-4 top-1/2 -translate-y-1/2 z-10 rounded-full bg-black/30 hover:bg-black/45 text-white p-2 backdrop-blur-sm transition"
+      >
+        <ChevronRight className="h-5 w-5" />
+      </button>
+
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex gap-2">
+        {slides.map((_, idx) => (
+          <button
+            key={idx}
+            type="button"
+            aria-label={`Go to slide ${idx + 1}`}
+            onClick={() => setActive(idx)}
+            className={[
+              "h-2.5 w-2.5 rounded-full transition",
+              idx === active ? "bg-white" : "bg-white/40 hover:bg-white/60",
+            ].join(" ")}
           />
-        </motion.div>
-      </motion.div>
+        ))}
+      </div>
     </section>
   );
 }

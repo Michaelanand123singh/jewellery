@@ -45,11 +45,12 @@ filesToUnblock.forEach(file => {
   }
 });
 
-// Also try to unblock all .node and .exe files in @next and @prisma directories
+// Also try to unblock all .node and .exe files in @next, @prisma, and @swc directories
 const directoriesToCheck = [
   path.join(nodeModulesPath, '@next'),
   path.join(nodeModulesPath, '@prisma'),
   path.join(nodeModulesPath, '.prisma'),
+  path.join(nodeModulesPath, '@swc'),
 ];
 
 directoriesToCheck.forEach(dir => {

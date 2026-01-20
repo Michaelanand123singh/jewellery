@@ -1,6 +1,7 @@
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import HeroSection from "@/components/home/HeroSection";
+import EverydayDemifineSection from "@/components/home/EverydayDemifineSection";
 import ProductSection from "@/components/home/ProductSection";
 import FeaturedProducts from "@/components/home/FeaturedProducts";
 import Newsletter from "@/components/home/Newsletter";
@@ -11,7 +12,8 @@ export default function Home() {
       <Header />
       <main className="flex-grow">
         <HeroSection />
-        <ProductSection title="New Products" />
+        <EverydayDemifineSection />
+        <ProductSection title="Palmonas Top Styles" />
         <FeaturedProducts />
         <Newsletter />
       </main>
