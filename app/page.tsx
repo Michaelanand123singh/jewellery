@@ -8,6 +8,7 @@ import FeaturedProducts from "@/components/home/FeaturedProducts";
 import BannerSection from "@/components/home/BannerSection";
 import ProductGridSection from "@/components/home/ProductGridSection";
 import BlogSection from "@/components/home/BlogSection";
+import ShopWithConfidence from "@/components/home/ShopWithConfidence";
 import Newsletter from "@/components/home/Newsletter";
 
 export default function Home() {
@@ -23,6 +24,7 @@ export default function Home() {
         <BannerSection />
         <ProductGridSection />
         <BlogSection />
+        <ShopWithConfidence />
         <Newsletter />
       </main>
       <Footer />
