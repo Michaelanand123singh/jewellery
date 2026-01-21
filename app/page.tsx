@@ -9,6 +9,7 @@ import BannerSection from "@/components/home/BannerSection";
 import ProductGridSection from "@/components/home/ProductGridSection";
 import BlogSection from "@/components/home/BlogSection";
 import ShopWithConfidence from "@/components/home/ShopWithConfidence";
+import TestimonialsSection from "@/components/home/TestimonialsSection";
 import Newsletter from "@/components/home/Newsletter";
 
 export default function Home() {
@@ -25,6 +26,7 @@ export default function Home() {
         <ProductGridSection />
         <BlogSection />
         <ShopWithConfidence />
+        <TestimonialsSection />
         <Newsletter />
       </main>
       <Footer />
