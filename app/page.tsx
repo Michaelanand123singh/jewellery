@@ -3,7 +3,11 @@ import Footer from "@/components/layout/Footer";
 import HeroSection from "@/components/home/HeroSection";
 import EverydayDemifineSection from "@/components/home/EverydayDemifineSection";
 import ProductSection from "@/components/home/ProductSection";
+import PromotionalBanner from "@/components/home/PromotionalBanner";
 import FeaturedProducts from "@/components/home/FeaturedProducts";
+import BannerSection from "@/components/home/BannerSection";
+import ProductGridSection from "@/components/home/ProductGridSection";
+import BlogSection from "@/components/home/BlogSection";
 import Newsletter from "@/components/home/Newsletter";
 
 export default function Home() {
@@ -14,7 +18,11 @@ export default function Home() {
         <HeroSection />
         <EverydayDemifineSection />
         <ProductSection title="Adorne Top Styles" />
+        <PromotionalBanner />
         <FeaturedProducts />
+        <BannerSection />
+        <ProductGridSection />
+        <BlogSection />
         <Newsletter />
       </main>
       <Footer />
