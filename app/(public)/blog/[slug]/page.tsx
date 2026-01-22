@@ -8,8 +8,11 @@ import { useRouter } from "next/navigation";
 import { Calendar, Clock, ArrowLeft, Share2, Tag, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { getBlogPostBySlug, getAllBlogPosts, type BlogPost } from "@/lib/blog-data";
 import { cn } from "@/lib/utils";
+import TableOfContents from "@/components/blog/TableOfContents";
+import { useEffect, useRef } from "react";
 
 interface BlogPostPageProps {
   params: Promise<{ slug: string }>;
@@ -20,6 +23,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
   const router = useRouter();
   const post = getBlogPostBySlug(slug);
   const allPosts = getAllBlogPosts();
+  const contentRef = useRef<HTMLDivElement>(null);
 
   if (!post) {
     router.push("/blog");
@@ -30,6 +34,26 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
   const relatedPosts = allPosts
     .filter((p) => p.category === post.category && p.id !== post.id)
     .slice(0, 3);
+
+  // Add IDs to headings in content after render
+  useEffect(() => {
+    if (!post.content) return;
+
+    const addIdsToHeadings = () => {
+      const headings = document.querySelectorAll(".blog-content h2, .blog-content h3");
+      headings.forEach((heading, index) => {
+        if (!heading.id) {
+          const text = heading.textContent || "";
+          const id = `heading-${index}-${text.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+          heading.id = id;
+        }
+      });
+    };
+
+    // Wait for content to render, then add IDs
+    const timeout = setTimeout(addIdsToHeadings, 100);
+    return () => clearTimeout(timeout);
+  }, [post.content]);
 
   return (
     <main className="flex-grow bg-background">
@@ -104,7 +128,12 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
       {/* Article Content */}
       <article className="py-8 md:py-12 lg:py-16">
         <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto">
+          <div className="flex gap-8 lg:gap-12">
+            {/* Table of Contents - Desktop Sidebar */}
+            {post.content && <TableOfContents content={post.content} />}
+
+            {/* Main Content */}
+            <div className="flex-1 max-w-3xl mx-auto lg:mx-0">
             {/* Tags */}
             {post.tags && post.tags.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-6 md:mb-8">
@@ -123,6 +152,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
             {/* Article Body */}
             <div className="blog-content">
               <div
+                ref={contentRef}
                 className="
                   [&>p]:text-base md:[&>p]:text-lg lg:[&>p]:text-xl
                   [&>p]:text-muted-foreground 
@@ -137,10 +167,12 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
                   [&>h2]:mt-12 md:[&>h2]:mt-16 [&>h2]:mb-5 md:[&>h2]:mb-7
                   [&>h2]:pt-4 [&>h2]:border-t-2 [&>h2]:border-border
                   [&>h2]:first:mt-0 [&>h2]:first:pt-0 [&>h2]:first:border-0
+                  [&>h2]:scroll-mt-24
                   
                   [&>h3]:text-xl md:[&>h3]:text-2xl lg:[&>h3]:text-3xl
                   [&>h3]:font-semibold [&>h3]:text-foreground
                   [&>h3]:mt-10 md:[&>h3]:mt-12 [&>h3]:mb-4 md:[&>h3]:mb-6
+                  [&>h3]:scroll-mt-24
                   
                   [&>ul]:list-none [&>ul]:space-y-4 md:[&>ul]:space-y-5
                   [&>ul]:my-8 md:[&>ul]:my-10
@@ -221,6 +253,30 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
                   </Link>
                 </Button>
               </div>
+            </div>
+
+            {/* FAQ Section */}
+            {post.faqs && Array.isArray(post.faqs) && post.faqs.length > 0 && (
+              <div className="mt-12 md:mt-16 pt-8 md:pt-10 border-t border-border">
+                <div>
+                  <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-6 md:mb-8 text-foreground">
+                    Frequently Asked Questions
+                  </h2>
+                  <Accordion type="single" collapsible className="w-full">
+                    {post.faqs.map((faq, index) => (
+                      <AccordionItem key={`faq-item-${index}`} value={`faq-${index}`}>
+                        <AccordionTrigger className="text-left text-base md:text-lg font-semibold">
+                          {faq.question}
+                        </AccordionTrigger>
+                        <AccordionContent className="text-base md:text-lg text-muted-foreground leading-relaxed">
+                          {faq.answer}
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
+                </div>
+              </div>
+            )}
             </div>
           </div>
         </div>
