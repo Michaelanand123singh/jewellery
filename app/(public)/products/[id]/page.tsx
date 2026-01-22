@@ -1237,62 +1237,102 @@ export default function ProductPage({
             </Card>
           )}
         </section>
-
-        {/* Fullscreen Image Modal */}
-        <AnimatePresence>
-          {isFullscreen && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 bg-black/95 backdrop-blur-sm flex items-center justify-center p-4"
-              onClick={() => setIsFullscreen(false)}
-            >
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                className="relative max-w-7xl max-h-[90vh] w-full h-full"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute top-4 right-4 bg-background/90 backdrop-blur-sm hover:bg-background z-10"
-                  onClick={() => setIsFullscreen(false)}
-                >
-                  <X className="h-6 w-6" />
-                </Button>
-                <div className="relative w-full h-full flex items-center justify-center">
-                  <Image
-                    src={images[selectedImage] || product.image}
-                    alt={product.name}
-                    fill
-                    className="object-contain"
-                    sizes="90vw"
-                  />
-                </div>
-                {images.length > 1 && (
-                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-                    {images.map((img, index) => (
-                      <button
-                        key={index}
-                        onClick={() => setSelectedImage(index)}
-                        className={cn(
-                          "h-2 w-2 rounded-full transition-all",
-                          selectedImage === index
-                            ? "bg-white w-8"
-                            : "bg-white/50 hover:bg-white/75"
-                        )}
-                      />
-                    ))}
-                  </div>
-                )}
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
+
+      {/* Image Banner Section - Full Width */}
+      <section className="w-full mb-12">
+        <div className="relative w-full overflow-hidden">
+          <div className="relative aspect-[16/6] md:aspect-[16/5] w-full bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700">
+            <Image
+              src="/img/slider/3.jpg"
+              alt="Special Offer Banner"
+              fill
+              className="object-cover"
+              sizes="100vw"
+              priority={false}
+              onError={(e) => {
+                // Hide image on error, gradient background will show
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+              }}
+            />
+            {/* Overlay content */}
+            <div className="absolute inset-0 flex items-center justify-center bg-black/10">
+              <div className="text-center px-4 max-w-3xl">
+                <h3 className="text-2xl md:text-4xl lg:text-5xl font-bold text-white mb-3 drop-shadow-lg">
+                  Exclusive Collection
+                </h3>
+                <p className="text-base md:text-lg lg:text-xl text-white/95 mb-4 drop-shadow-md">
+                  Discover our premium jewelry pieces crafted with perfection
+                </p>
+                <Button
+                  size="lg"
+                  className="bg-white text-amber-700 hover:bg-amber-50 font-semibold shadow-lg"
+                  onClick={() => router.push('/shop')}
+                >
+                  Shop Now
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Fullscreen Image Modal */}
+      <AnimatePresence>
+        {isFullscreen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/95 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => setIsFullscreen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative max-w-7xl max-h-[90vh] w-full h-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute top-4 right-4 bg-background/90 backdrop-blur-sm hover:bg-background z-10"
+                onClick={() => setIsFullscreen(false)}
+              >
+                <X className="h-6 w-6" />
+              </Button>
+              <div className="relative w-full h-full flex items-center justify-center">
+                <Image
+                  src={images[selectedImage] || product.image}
+                  alt={product.name}
+                  fill
+                  className="object-contain"
+                  sizes="90vw"
+                />
+              </div>
+              {images.length > 1 && (
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                  {images.map((img, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setSelectedImage(index)}
+                      className={cn(
+                        "h-2 w-2 rounded-full transition-all",
+                        selectedImage === index
+                          ? "bg-white w-8"
+                          : "bg-white/50 hover:bg-white/75"
+                      )}
+                    />
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }

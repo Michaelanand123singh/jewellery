@@ -2,8 +2,6 @@
 
 import { motion } from "framer-motion";
 import { useState } from "react";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -43,9 +41,7 @@ export default function DesignServicePage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-      <main className="flex-grow">
+    <main className="flex-grow">
         {/* Page Title */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -172,7 +168,5 @@ export default function DesignServicePage() {
           </div>
         </section>
       </main>
-      <Footer />
-    </div>
   );
 }
