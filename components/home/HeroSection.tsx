@@ -8,13 +8,9 @@ import { useEffect, useMemo, useState } from "react";
 export default function HeroSection() {
   const slides = useMemo(
     () => [
-      "/img/slider/1.jpg",
-      "/img/slider/2.jpg",
-      "/img/slider/3.jpg",
-      "/img/slider/4.jpg",
-      "/img/slider/5.jpg",
-      "/img/slider/6.jpg",
-      "/img/slider/7.jpg",
+      "/img/hero-section-banner/1 (1).webp",
+      "/img/hero-section-banner/2 (1).webp",
+      "/img/hero-section-banner/3 (1).webp",
     ],
     []
   );
@@ -63,7 +59,7 @@ export default function HeroSection() {
         type="button"
         aria-label="Previous slide"
         onClick={goPrev}
-        className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-10 rounded-full bg-black/30 hover:bg-black/45 text-white p-2 sm:p-2.5 backdrop-blur-sm transition"
+        className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-10 rounded-ful text-white p-2 sm:p-2.5 backdrop-blur-sm transition"
       >
         <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
       </button>
@@ -71,25 +67,10 @@ export default function HeroSection() {
         type="button"
         aria-label="Next slide"
         onClick={goNext}
-        className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-10 rounded-full bg-black/30 hover:bg-black/45 text-white p-2 sm:p-2.5 backdrop-blur-sm transition"
+        className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-10 rounded-full text-white p-2 sm:p-2.5 backdrop-blur-sm transition"
       >
         <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
       </button>
-
-      <div className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-10 flex gap-2">
-        {slides.map((_, idx) => (
-          <button
-            key={idx}
-            type="button"
-            aria-label={`Go to slide ${idx + 1}`}
-            onClick={() => setActive(idx)}
-            className={[
-              "h-2 w-2 sm:h-2.5 sm:w-2.5 rounded-full transition",
-              idx === active ? "bg-white" : "bg-white/40 hover:bg-white/60",
-            ].join(" ")}
-          />
-        ))}
-      </div>
     </section>
   );
 }

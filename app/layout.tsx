@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Jost } from "next/font/google";
 import { Toaster } from "sonner";
 import "./globals.css";
 import { CartWishlistSync } from "@/components/providers/CartWishlistSync";
 
-const inter = Inter({ subsets: ["latin"] });
+const jost = Jost({ 
+  subsets: ["latin"],
+  variable: "--font-jost",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Adorne - Premium Jewelry Collection",
@@ -19,7 +23,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={`${jost.variable} ${jost.className} font-sans`}>
         <CartWishlistSync />
         {children}
         <Toaster position="bottom-right" richColors />

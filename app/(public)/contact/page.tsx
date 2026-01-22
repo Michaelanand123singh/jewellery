@@ -108,10 +108,10 @@ export default function ContactPage() {
         className="bg-gradient-to-br from-primary/10 via-primary/5 to-background py-16 md:py-24"
       >
         <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
             Get In Touch
           </h1>
-          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto px-2">
             We'd love to hear from you. Whether you have a question about our products, 
             need assistance, or just want to say hello, we're here to help.
           </p>
@@ -121,7 +121,7 @@ export default function ContactPage() {
       {/* Contact Information Cards */}
       <section className="py-12 md:py-16">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-12 sm:mb-16">
             {contactInfo.map((info, index) => {
               const Icon = info.icon;
               return (
@@ -132,15 +132,15 @@ export default function ContactPage() {
                   transition={{ delay: index * 0.1, duration: 0.5 }}
                 >
                   <Card className="h-full hover:shadow-lg transition-shadow duration-300 border-2 hover:border-primary/20">
-                    <CardContent className="p-6 text-center">
+                    <CardContent className="p-4 sm:p-6 text-center">
                       <div className={cn(
-                        "w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center",
+                        "w-12 h-12 sm:w-16 sm:h-16 rounded-full mx-auto mb-3 sm:mb-4 flex items-center justify-center",
                         info.bgColor
                       )}>
-                        <Icon className={cn("h-8 w-8", info.color)} />
+                        <Icon className={cn("h-6 w-6 sm:h-8 sm:w-8", info.color)} />
                       </div>
-                      <h3 className="font-semibold text-lg mb-2">{info.title}</h3>
-                      <p className="text-sm font-medium mb-1">{info.content}</p>
+                      <h3 className="font-semibold text-base sm:text-lg mb-1 sm:mb-2">{info.title}</h3>
+                      <p className="text-xs sm:text-sm font-medium mb-1">{info.content}</p>
                       <p className="text-xs text-muted-foreground">{info.subContent}</p>
                     </CardContent>
                   </Card>
@@ -154,7 +154,7 @@ export default function ContactPage() {
       {/* Contact Form Section */}
       <section className="py-12 md:py-16 bg-muted/30">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12 max-w-7xl mx-auto">
             {/* Left Side - Contact Form */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
@@ -162,20 +162,20 @@ export default function ContactPage() {
               transition={{ delay: 0.2, duration: 0.6 }}
             >
               <Card className="shadow-lg border-2">
-                <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
-                      <MessageCircle className="h-6 w-6 text-primary" />
+                <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5 p-4 sm:p-6">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                      <MessageCircle className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                     </div>
                     <div>
-                      <CardTitle className="text-2xl">Send us a Message</CardTitle>
-                      <CardDescription className="mt-1">
+                      <CardTitle className="text-xl sm:text-2xl">Send us a Message</CardTitle>
+                      <CardDescription className="mt-1 text-xs sm:text-sm">
                         Fill out the form below and we'll get back to you as soon as possible.
                       </CardDescription>
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="p-6">
+                <CardContent className="p-4 sm:p-6">
                   {isSubmitted ? (
                     <div className="text-center py-12">
                       <div className="w-20 h-20 rounded-full bg-green-100 dark:bg-green-950/30 mx-auto mb-4 flex items-center justify-center">
@@ -220,7 +220,7 @@ export default function ContactPage() {
                         </div>
                       </div>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                         <div className="space-y-2">
                           <Label htmlFor="phone" className="text-sm font-semibold">
                             Phone Number
@@ -269,7 +269,7 @@ export default function ContactPage() {
 
                       <Button 
                         type="submit" 
-                        className="w-full h-12 text-base font-semibold" 
+                        className="w-full h-11 sm:h-12 text-sm sm:text-base font-semibold" 
                         size="lg"
                         disabled={isSubmitting}
                       >

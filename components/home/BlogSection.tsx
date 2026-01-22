@@ -5,36 +5,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { Calendar, ArrowRight } from "lucide-react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { getAllBlogPosts } from "@/lib/blog-data";
 
-const blogPosts = [
-  {
-    id: 1,
-    title: "The Ultimate Guide to Choosing the Perfect Engagement Ring",
-    excerpt: "Discover everything you need to know about selecting the perfect engagement ring that symbolizes your love and commitment.",
-    image: "/img/slider/1.jpg",
-    date: "January 15, 2024",
-    category: "Jewelry Guide",
-    slug: "ultimate-guide-engagement-ring",
-  },
-  {
-    id: 2,
-    title: "Caring for Your Gold Jewelry: Tips and Tricks",
-    excerpt: "Learn how to maintain the shine and beauty of your gold jewelry with these expert care tips and maintenance guidelines.",
-    image: "/img/slider/2.jpg",
-    date: "January 10, 2024",
-    category: "Care Tips",
-    slug: "caring-for-gold-jewelry",
-  },
-  {
-    id: 3,
-    title: "Trending Jewelry Styles for 2024",
-    excerpt: "Explore the latest jewelry trends and styles that are making waves in 2024, from minimalist designs to statement pieces.",
-    image: "/img/slider/3.jpg",
-    date: "January 5, 2024",
-    category: "Trends",
-    slug: "trending-jewelry-styles-2024",
-  },
-];
+const blogPosts = getAllBlogPosts().slice(0, 3);
 
 export default function BlogSection() {
   return (
