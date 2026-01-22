@@ -1,3 +1,8 @@
+export interface FAQ {
+  question: string;
+  answer: string;
+}
+
 export interface BlogPost {
   id: number;
   title: string;
@@ -10,6 +15,7 @@ export interface BlogPost {
   author?: string;
   readTime?: string;
   tags?: string[];
+  faqs?: FAQ[];
 }
 
 export const blogPosts: BlogPost[] = [
@@ -68,6 +74,28 @@ export const blogPosts: BlogPost[] = [
 
       <p>Choosing the perfect engagement ring is a journey, but with the right knowledge and guidance, you'll find the ring that perfectly captures your love story.</p>
     `,
+    faqs: [
+      {
+        question: "What is the average cost of an engagement ring?",
+        answer: "The average cost varies widely, but many couples spend between ₹50,000 to ₹5,00,000. However, the most important factor is choosing a ring that fits your budget and represents your commitment. Quality and meaning matter more than price."
+      },
+      {
+        question: "How do I determine my partner's ring size?",
+        answer: "You can discreetly borrow one of their existing rings and have it measured at a jeweler, or ask a close friend or family member for help. If you're unsure, it's better to size up slightly as rings can be resized down more easily than up."
+      },
+      {
+        question: "What's the difference between 14k, 18k, and 24k gold?",
+        answer: "The 'k' stands for karat, which indicates the purity of gold. 24k is pure gold (100%), 18k is 75% gold, and 14k is 58.3% gold. Higher karat means purer gold but also softer metal. 14k and 18k are most popular for engagement rings as they're more durable."
+      },
+      {
+        question: "Should I choose a diamond or another gemstone?",
+        answer: "Both are excellent choices! Diamonds are traditional and durable, while colored gemstones like sapphires, emeralds, or rubies offer unique beauty and personalization. Consider your partner's style and preferences when making this decision."
+      },
+      {
+        question: "What is a GIA certificate and why is it important?",
+        answer: "GIA (Gemological Institute of America) certification provides an independent assessment of a diamond's quality (the 4 Cs). It ensures you're getting what you paid for and helps with insurance and resale value. Always request certification for diamonds over 0.5 carats."
+      }
+    ],
   },
   {
     id: 2,
