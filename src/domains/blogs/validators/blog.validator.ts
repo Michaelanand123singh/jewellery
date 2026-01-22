@@ -14,13 +14,42 @@ export const createBlogSchema = z.object({
   slug: z.string().min(1, 'Slug is required').regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Slug must be lowercase alphanumeric with hyphens'),
   excerpt: z.string().min(1, 'Excerpt is required').max(500, 'Excerpt must be less than 500 characters'),
   content: z.string().optional(),
-  image: z.string().url('Image must be a valid URL'),
+  image: z.string().min(1, 'Image is required').refine(
+    (val) => {
+      // Accept full URLs (http/https) or relative paths starting with /
+      if (val.startsWith('http://') || val.startsWith('https://')) {
+        try {
+          new URL(val);
+          return true;
+        } catch {
+          return false;
+        }
+      }
+      // Accept relative paths starting with /
+      if (val.startsWith('/')) {
+        return true;
+      }
+      return false;
+    },
+    { message: 'Image must be a valid URL or relative path starting with /' }
+  ),
   category: z.string().min(1, 'Category is required'),
   author: z.string().optional(),
   readTime: z.string().optional(),
   tags: z.array(z.string()).optional().default([]),
   published: z.boolean().default(false),
-  publishedAt: z.date().optional(),
+  publishedAt: z.preprocess(
+    (val) => {
+      if (!val) return undefined;
+      if (val instanceof Date) return val;
+      if (typeof val === 'string') {
+        const date = new Date(val);
+        return isNaN(date.getTime()) ? undefined : date;
+      }
+      return undefined;
+    },
+    z.date().optional()
+  ),
   faqs: z.array(blogFAQSchema).optional().default([]),
 });
 

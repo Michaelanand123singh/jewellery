@@ -285,6 +285,33 @@ export default function BlogManagement() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        
+        // Validate required fields
+        if (!formData.image || formData.image.trim() === '') {
+            toast.error('Please upload a blog image');
+            return;
+        }
+        
+        if (!formData.title.trim()) {
+            toast.error('Title is required');
+            return;
+        }
+        
+        if (!formData.slug.trim()) {
+            toast.error('Slug is required');
+            return;
+        }
+        
+        if (!formData.excerpt.trim()) {
+            toast.error('Excerpt is required');
+            return;
+        }
+        
+        if (!formData.category) {
+            toast.error('Category is required');
+            return;
+        }
+
         setSubmitting(true);
 
         try {
@@ -294,14 +321,14 @@ export default function BlogManagement() {
                 .filter((tag) => tag);
 
             const blogData = {
-                title: formData.title,
-                slug: formData.slug,
-                excerpt: formData.excerpt,
-                content: formData.content || undefined,
-                image: formData.image,
+                title: formData.title.trim(),
+                slug: formData.slug.trim(),
+                excerpt: formData.excerpt.trim(),
+                content: formData.content?.trim() || undefined,
+                image: formData.image.trim(),
                 category: formData.category,
-                author: formData.author || undefined,
-                readTime: formData.readTime || undefined,
+                author: formData.author?.trim() || undefined,
+                readTime: formData.readTime?.trim() || undefined,
                 tags: tagsArray,
                 published: formData.published,
                 publishedAt: formData.published ? new Date().toISOString() : undefined,
