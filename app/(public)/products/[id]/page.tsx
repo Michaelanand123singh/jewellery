@@ -501,8 +501,8 @@ export default function ProductPage({
 
   return (
     <main className="flex-grow bg-background">
-      <div className="container mx-auto px-4 py-6 md:py-8 max-w-7xl">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 mb-12">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 max-w-7xl">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-12 mb-8 sm:mb-12">
           {/* Image Gallery - Left Side */}
           <div className="relative">
             {/* Main Image */}
@@ -554,8 +554,8 @@ export default function ProductPage({
           {/* Product Info - Right Side */}
           <div className="space-y-4">
             {/* Product Title and Rating - Same Line */}
-            <div className="flex items-center justify-between gap-4">
-              <h1 className="text-2xl md:text-3xl font-bold leading-tight flex-1">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold leading-tight flex-1">
                 {product.name}
               </h1>
               <div className="flex items-center gap-2 flex-shrink-0">
@@ -564,7 +564,7 @@ export default function ProductPage({
                     <Star
                       key={i}
                       className={cn(
-                        "h-4 w-4",
+                        "h-3 w-3 sm:h-4 sm:w-4",
                         i < Math.floor(product.rating || 0)
                           ? "fill-primary text-primary"
                           : "text-muted fill-muted"
@@ -572,7 +572,7 @@ export default function ProductPage({
                     />
                   ))}
                 </div>
-                <span className="text-sm text-muted-foreground whitespace-nowrap">
+                <span className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
                   ({(product as any).reviewCount || 235})
                 </span>
               </div>
@@ -580,20 +580,20 @@ export default function ProductPage({
 
             {/* Price Section */}
             <div className="space-y-1">
-              <div className="flex items-baseline gap-3 flex-wrap">
-                <span className="text-3xl font-bold">₹{product.price.toLocaleString()}</span>
+              <div className="flex items-baseline gap-2 sm:gap-3 flex-wrap">
+                <span className="text-2xl sm:text-3xl font-bold">₹{product.price.toLocaleString()}</span>
                 {product.originalPrice && product.originalPrice > product.price && (
                   <>
-                    <span className="text-xl text-muted-foreground line-through">
+                    <span className="text-lg sm:text-xl text-muted-foreground line-through">
                       ₹{product.originalPrice.toLocaleString()}
                     </span>
-                    <span className="text-sm bg-black text-white dark:bg-black dark:text-white px-2.5 py-1 font-semibold">
+                    <span className="text-xs sm:text-sm bg-black text-white dark:bg-black dark:text-white px-2 sm:px-2.5 py-0.5 sm:py-1 font-semibold">
                       SAVE {calculateDiscount()}%
                     </span>
                   </>
                 )}
               </div>
-              <div className="text-sm text-muted-foreground">
+              <div className="text-xs sm:text-sm text-muted-foreground">
                 Inclusive of all taxes
               </div>
             </div>
@@ -628,17 +628,17 @@ export default function ProductPage({
             </div>
 
             {/* Size Selection */}
-            <div className="space-y-3">
-              <label className="text-sm font-semibold block">
+            <div className="space-y-2 sm:space-y-3">
+              <label className="text-xs sm:text-sm font-semibold block">
                 SIZE (US): {selectedSize}
               </label>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                 {availableSizes.map((size) => (
                   <button
                     key={size}
                     onClick={() => setSelectedSize(size)}
                     className={cn(
-                      "h-10 w-10 rounded-full border-2 flex items-center justify-center font-medium text-sm transition-all",
+                      "h-9 w-9 sm:h-10 sm:w-10 rounded-full border-2 flex items-center justify-center font-medium text-xs sm:text-sm transition-all",
                       selectedSize === size
                         ? "border-amber-600 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400"
                         : "border-border hover:border-primary/50 text-foreground bg-background"
@@ -651,10 +651,10 @@ export default function ProductPage({
             </div>
 
             {/* Action Buttons */}
-            <div className="space-y-3 pt-2">
+            <div className="space-y-2 sm:space-y-3 pt-2">
               <Button
                 size="lg"
-                className="w-full h-12 bg-gray-900 dark:bg-gray-800 text-white hover:bg-gray-800 dark:hover:bg-gray-700 font-semibold"
+                className="w-full h-11 sm:h-12 bg-gray-900 dark:bg-gray-800 text-white hover:bg-gray-800 dark:hover:bg-gray-700 font-semibold text-sm sm:text-base"
                 onClick={handleAddToCart}
                 disabled={!product.inStock || isAddingToCart}
               >
@@ -662,18 +662,18 @@ export default function ProductPage({
                   "Adding..."
                 ) : (
                   <>
-                    <ShoppingCart className="h-5 w-5 mr-2" />
+                    <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
                     ADD TO CART
-                    <ArrowRight className="h-4 w-4 ml-2" />
+                    <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4 ml-2" />
                   </>
                 )}
               </Button>
               
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3">
                 <Button
                   size="lg"
                   variant="outline"
-                  className="flex-1 h-12 border-2"
+                  className="flex-1 h-11 sm:h-12 border-2 text-sm sm:text-base"
                   onClick={handleBuyNow}
                   disabled={!product.inStock}
                 >
@@ -682,12 +682,13 @@ export default function ProductPage({
                 <Button
                   size="lg"
                   variant="outline"
-                  className="h-12 w-12 border-2 p-0"
+                  className="h-11 w-11 sm:h-12 sm:w-12 border-2 p-0"
                   onClick={handleAddToWishlist}
+                  aria-label="Add to wishlist"
                 >
                   <Heart
                     className={cn(
-                      "h-5 w-5",
+                      "h-4 w-4 sm:h-5 sm:w-5",
                       isInWishlist && "fill-primary text-primary"
                     )}
                   />
@@ -815,16 +816,16 @@ export default function ProductPage({
         </div>
 
         {/* Key Features/Trust Badges Section */}
-        <div className="bg-amber-50 dark:bg-amber-950/20 py-8 px-6 rounded-lg mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-amber-50 dark:bg-amber-950/20 py-6 sm:py-8 px-4 sm:px-6 rounded-lg mb-6 sm:mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
             {/* Free Shipping */}
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
-                <Truck className="h-6 w-6 text-amber-700 dark:text-amber-400" />
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
+                <Truck className="h-5 w-5 sm:h-6 sm:w-6 text-amber-700 dark:text-amber-400" />
               </div>
               <div>
-                <h3 className="font-semibold text-foreground">Free Shipping</h3>
-                <p className="text-sm text-muted-foreground">On orders above ₹500</p>
+                <h3 className="font-semibold text-sm sm:text-base text-foreground">Free Shipping</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground">On orders above ₹500</p>
               </div>
             </div>
 
@@ -871,38 +872,38 @@ export default function ProductPage({
           </div>
 
           {/* Service Boxes */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
             {/* 2 Days Return */}
-            <div className="bg-background border-2 border-border rounded-lg p-6 text-center">
-              <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
-                <RotateCcw className="h-8 w-8 text-foreground" />
+            <div className="bg-background border-2 border-border rounded-lg p-4 sm:p-6 text-center">
+              <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                <RotateCcw className="h-6 w-6 sm:h-8 sm:w-8 text-foreground" />
               </div>
-              <h3 className="font-semibold text-lg mb-2">2 Days Return</h3>
-              <p className="text-sm text-muted-foreground">
+              <h3 className="font-semibold text-base sm:text-lg mb-1 sm:mb-2">2 Days Return</h3>
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 Easy returns within 2 days of delivery
               </p>
             </div>
 
             {/* 10 Days Exchange */}
-            <div className="bg-background border-2 border-border rounded-lg p-6 text-center">
-              <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
-                <RotateCcw className="h-8 w-8 text-foreground" />
+            <div className="bg-background border-2 border-border rounded-lg p-4 sm:p-6 text-center">
+              <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                <RotateCcw className="h-6 w-6 sm:h-8 sm:w-8 text-foreground" />
               </div>
-              <h3 className="font-semibold text-lg mb-2">10 Days Exchange</h3>
-              <p className="text-sm text-muted-foreground">
+              <h3 className="font-semibold text-base sm:text-lg mb-1 sm:mb-2">10 Days Exchange</h3>
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 Exchange for different size or style
               </p>
             </div>
 
             {/* Cash On Delivery */}
-            <div className="bg-background border-2 border-border rounded-lg p-6 text-center">
-              <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
-                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <IndianRupee className="h-6 w-6 text-primary" />
+            <div className="bg-background border-2 border-border rounded-lg p-4 sm:p-6 text-center">
+              <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <IndianRupee className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                 </div>
               </div>
-              <h3 className="font-semibold text-lg mb-2">Cash On Delivery</h3>
-              <p className="text-sm text-muted-foreground">
+              <h3 className="font-semibold text-base sm:text-lg mb-1 sm:mb-2">Cash On Delivery</h3>
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 Pay when you receive your order
               </p>
             </div>
@@ -911,12 +912,12 @@ export default function ProductPage({
 
 
         {/* Promotional Tabs */}
-        <div className="bg-white border-b border-border py-4 mb-8">
-          <div className="flex flex-wrap items-center justify-start gap-4 md:gap-8">
+        <div className="bg-white border-b border-border py-3 sm:py-4 mb-6 sm:mb-8 overflow-x-auto">
+          <div className="flex flex-wrap items-center justify-start gap-3 sm:gap-4 md:gap-8 min-w-max">
             <button
               onClick={() => setActivePromoTab("b1g1")}
               className={cn(
-                "text-lg md:text-xl font-bold transition-colors pb-2 border-b-2",
+                "text-sm sm:text-base md:text-lg lg:text-xl font-bold transition-colors pb-2 border-b-2 whitespace-nowrap",
                 activePromoTab === "b1g1"
                   ? "border-primary text-primary"
                   : "border-transparent text-foreground hover:text-primary"
@@ -927,7 +928,7 @@ export default function ProductPage({
             <button
               onClick={() => setActivePromoTab("b3")}
               className={cn(
-                "text-sm md:text-base font-semibold transition-colors pb-2 border-b-2",
+                "text-xs sm:text-sm md:text-base font-semibold transition-colors pb-2 border-b-2 whitespace-nowrap",
                 activePromoTab === "b3"
                   ? "border-primary text-primary"
                   : "border-transparent text-muted-foreground hover:text-primary"
@@ -938,7 +939,7 @@ export default function ProductPage({
             <button
               onClick={() => setActivePromoTab("b4")}
               className={cn(
-                "text-sm md:text-base font-semibold transition-colors pb-2 border-b-2",
+                "text-xs sm:text-sm md:text-base font-semibold transition-colors pb-2 border-b-2 whitespace-nowrap",
                 activePromoTab === "b4"
                   ? "border-primary text-primary underline"
                   : "border-transparent text-muted-foreground hover:text-primary underline"
@@ -962,10 +963,10 @@ export default function ProductPage({
                     carouselRef.current.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
                   }
                 }}
-                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-background border-2 border-border shadow-lg flex items-center justify-center hover:bg-muted transition-colors"
+                className="absolute left-0 sm:left-2 top-1/2 -translate-y-1/2 z-10 h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-background border-2 border-border shadow-lg flex items-center justify-center hover:bg-muted transition-colors"
                 aria-label="Scroll left"
               >
-                <ChevronLeft className="h-5 w-5" />
+                <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
               </button>
             )}
 
@@ -984,7 +985,7 @@ export default function ProductPage({
                   {displayProducts.map((relatedProduct) => (
                     <div
                       key={relatedProduct.id}
-                      className="flex-shrink-0 w-[280px] sm:w-[300px] group"
+                      className="flex-shrink-0 w-[240px] sm:w-[280px] md:w-[300px] group"
                     >
                       <div className="relative bg-white border border-border rounded-lg overflow-hidden">
                         {/* Product Image */}
@@ -1067,10 +1068,10 @@ export default function ProductPage({
                     carouselRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
                   }
                 }}
-                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-background border-2 border-border shadow-lg flex items-center justify-center hover:bg-muted transition-colors"
+                className="absolute right-0 sm:right-2 top-1/2 -translate-y-1/2 z-10 h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-background border-2 border-border shadow-lg flex items-center justify-center hover:bg-muted transition-colors"
                 aria-label="Scroll right"
               >
-                <ChevronRight className="h-5 w-5" />
+                <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
               </button>
             )}
           </div>

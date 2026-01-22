@@ -365,29 +365,30 @@ function ShopPageContent() {
 
         <div className="container mx-auto px-4 py-6 md:py-8">
           {/* Header */}
-          <div className="mb-6 md:mb-8">
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-2 capitalize">
+          <div className="mb-4 sm:mb-6 md:mb-8">
+            <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-1 sm:mb-2 capitalize">
               {category ? categoryMap[category] || category : subcategory ? subcategoryMap[subcategory] || subcategory : "Shop All"}
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-sm sm:text-base text-muted-foreground">
               {search ? `Search results for "${search}"` : "Discover our exquisite collection of jewelry"}
             </p>
           </div>
 
           {/* Active Filters */}
           {activeFilters.length > 0 && (
-            <div className="mb-6 flex flex-wrap items-center gap-2">
-              <span className="text-sm font-medium">Active Filters:</span>
+            <div className="mb-4 sm:mb-6 flex flex-wrap items-center gap-2 text-xs sm:text-sm">
+              <span className="font-medium whitespace-nowrap">Active Filters:</span>
               {activeFilters.map((filter) => (
                 <div
                   key={filter.key}
-                  className="flex items-center gap-1 px-3 py-1 bg-primary/10 text-primary rounded-full text-sm"
+                  className="flex items-center gap-1 px-2 sm:px-3 py-1 bg-primary/10 text-primary rounded-full text-xs sm:text-sm"
                 >
-                  <span className="font-medium">{filter.label}:</span>
-                  <span>{filter.value}</span>
+                  <span className="font-medium hidden sm:inline">{filter.label}:</span>
+                  <span className="truncate max-w-[120px] sm:max-w-none">{filter.value}</span>
                   <button
                     onClick={() => removeFilter(filter.key)}
-                    className="ml-1 hover:bg-primary/20 rounded-full p-0.5"
+                    className="ml-1 hover:bg-primary/20 rounded-full p-0.5 flex-shrink-0"
+                    aria-label={`Remove ${filter.label} filter`}
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -397,26 +398,31 @@ function ShopPageContent() {
                 variant="ghost"
                 size="sm"
                 onClick={clearAllFilters}
-                className="text-xs"
+                className="text-xs sm:text-sm whitespace-nowrap"
               >
                 Clear All
               </Button>
             </div>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
             {/* Sidebar Filters */}
             <aside className="lg:col-span-1">
               {/* Mobile Filter Toggle */}
               <div className="lg:hidden mb-4">
                 <Button
                   variant="outline"
-                  className="w-full justify-between"
+                  className="w-full justify-between text-sm"
                   onClick={() => setShowMobileFilters(!showMobileFilters)}
                 >
                   <span className="flex items-center gap-2">
                     <SlidersHorizontal className="h-4 w-4" />
                     Filters
+                    {activeFilters.length > 0 && (
+                      <span className="bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded-full">
+                        {activeFilters.length}
+                      </span>
+                    )}
                   </span>
                   <Filter className="h-4 w-4" />
                 </Button>
@@ -424,7 +430,7 @@ function ShopPageContent() {
 
               <div
                 className={cn(
-                  "space-y-6 lg:sticky lg:top-24",
+                  "space-y-4 sm:space-y-6 lg:sticky lg:top-24 max-h-[calc(100vh-150px)] overflow-y-auto lg:max-h-none",
                   showMobileFilters ? "block" : "hidden lg:block"
                 )}
               >
@@ -535,20 +541,21 @@ function ShopPageContent() {
             {/* Products Section */}
             <div className="lg:col-span-3">
               {/* Toolbar */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                <div className="flex items-center gap-4">
-                  <p className="text-sm text-muted-foreground">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
+                <div className="flex items-center gap-2 sm:gap-4">
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     Showing <span className="font-semibold text-foreground">{filteredProducts.length}</span> of{" "}
                     <span className="font-semibold text-foreground">{totalProducts}</span> products
                   </p>
                 </div>
-                <div className="flex items-center gap-3 w-full sm:w-auto">
+                <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
                   <div className="flex items-center gap-1 border rounded-md p-1">
                     <Button
                       variant={viewMode === "grid" ? "default" : "ghost"}
                       size="sm"
                       onClick={() => setViewMode("grid")}
                       className="h-8 w-8 p-0"
+                      aria-label="Grid view"
                     >
                       <Grid className="h-4 w-4" />
                     </Button>
@@ -557,6 +564,7 @@ function ShopPageContent() {
                       size="sm"
                       onClick={() => setViewMode("list")}
                       className="h-8 w-8 p-0"
+                      aria-label="List view"
                     >
                       <List className="h-4 w-4" />
                     </Button>
@@ -568,7 +576,7 @@ function ShopPageContent() {
                       updateURL({ sortBy: newSortBy, sortOrder: newSortOrder });
                     }}
                   >
-                    <SelectTrigger className="w-[180px]">
+                    <SelectTrigger className="w-full sm:w-[140px] lg:w-[180px] text-xs sm:text-sm">
                       <SelectValue placeholder="Sort by" />
                     </SelectTrigger>
                     <SelectContent>
@@ -640,12 +648,13 @@ function ShopPageContent() {
 
                   {/* Pagination */}
                   {totalPages > 1 && (
-                    <div className="mt-8 flex justify-center items-center gap-2">
+                    <div className="mt-6 sm:mt-8 flex flex-wrap justify-center items-center gap-2">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => updateURL({ page: page - 1 })}
                         disabled={page === 1}
+                        className="text-xs sm:text-sm"
                       >
                         Previous
                       </Button>
@@ -667,7 +676,7 @@ function ShopPageContent() {
                               variant={page === pageNum ? "default" : "outline"}
                               size="sm"
                               onClick={() => updateURL({ page: pageNum })}
-                              className="w-10"
+                              className="w-8 h-8 sm:w-10 sm:h-10 text-xs sm:text-sm"
                             >
                               {pageNum}
                             </Button>
@@ -679,6 +688,7 @@ function ShopPageContent() {
                         size="sm"
                         onClick={() => updateURL({ page: page + 1 })}
                         disabled={page === totalPages}
+                        className="text-xs sm:text-sm"
                       >
                         Next
                       </Button>
