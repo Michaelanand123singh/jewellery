@@ -8,7 +8,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* About Section */}
           <div>
-            <h3 className="text-xl font-bold mb-4">JEWELLERY</h3>
+            <h3 className="text-xl font-bold mb-4">ADORNE</h3>
             <p className="text-slate-400 text-sm mb-4">
               We are a team of designers and developers that create high quality
               e-commerce experiences and provide premium support to our customers.
@@ -22,8 +22,8 @@ export default function Footer() {
               </p>
               <p>
                 <span className="font-medium">Email:</span>{" "}
-                <Link href="mailto:admin@jewellery.company" className="hover:text-primary">
-                  admin@jewellery.company
+                <Link href="mailto:admin@adorne.com" className="hover:text-primary">
+                  admin@adorne.com
                 </Link>
               </p>
             </div>
@@ -126,7 +126,7 @@ export default function Footer() {
 
         {/* Copyright */}
         <div className="border-t border-slate-800 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-slate-400">
-          <p>© {new Date().getFullYear()} Jewellery Store. All Rights Reserved.</p>
+          <p>© {new Date().getFullYear()} Adorne. All Rights Reserved.</p>
           <div className="mt-4 md:mt-0">
             <img
               src="/img/payment.png"

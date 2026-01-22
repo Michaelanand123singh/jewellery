@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect } from "react";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import Image from "next/image";
@@ -27,9 +25,7 @@ export default function WishlistPage() {
   }, [user, syncWishlist]);
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-      <main className="flex-grow container mx-auto px-4 py-8">
+    <main className="flex-grow container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-8">My Wishlist</h1>
 
         {isLoading ? (
@@ -104,7 +100,5 @@ export default function WishlistPage() {
           </div>
         )}
       </main>
-      <Footer />
-    </div>
   );
 }

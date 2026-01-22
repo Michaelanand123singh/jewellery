@@ -7,7 +7,7 @@ import { CartWishlistSync } from "@/components/providers/CartWishlistSync";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Jewellery Store - Premium Jewelry Collection",
+  title: "Adorne - Premium Jewelry Collection",
   description:
     "Discover our exquisite collection of fine jewelry including rings, necklaces, earrings, and more.",
 };

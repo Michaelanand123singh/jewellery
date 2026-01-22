@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect } from "react";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,9 +31,7 @@ export default function CartPage() {
   const total = subtotal + shipping;
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-      <main className="flex-grow container mx-auto px-4 py-8">
+    <main className="flex-grow container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-8">Shopping Cart</h1>
 
         {isLoading ? (
@@ -164,7 +160,5 @@ export default function CartPage() {
           </div>
         )}
       </main>
-      <Footer />
-    </div>
   );
 }
