@@ -1,30 +1,36 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Lazy load env to avoid validation errors
-function getEnv() {
-    try {
-        const { env } = require('./env');
-        return env;
-    } catch {
-        return {
-            NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-            NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-            SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
-        };
-    }
+// Get Supabase environment variables directly from process.env
+// These are not in lib/env.ts schema, so we read them directly
+function getSupabaseEnv() {
+    // In Next.js, environment variables are loaded from .env files automatically
+    // NEXT_PUBLIC_* variables are available on both client and server
+    // Other variables are only available on the server
+    return {
+        NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+        SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+    };
 }
 
-const env = getEnv();
+const env = getSupabaseEnv();
 
-const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabaseServiceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY || env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL?.trim() || '';
+const supabaseAnonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() || '';
+const supabaseServiceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY?.trim() || '';
 
 const isSupabaseConfigured = supabaseUrl && supabaseAnonKey;
+const isAdminConfigured = isSupabaseConfigured && supabaseServiceRoleKey;
 
-if (!isSupabaseConfigured) {
-    if (typeof window === 'undefined') {
-        console.warn('Supabase credentials missing. Image upload will not work.');
+// Log warnings for missing configuration (server-side only)
+if (typeof window === 'undefined') {
+    if (!isSupabaseConfigured) {
+        console.warn('⚠️  Supabase client credentials missing. Image upload will not work.');
+        console.warn('   Missing: NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY');
+    } else if (!isAdminConfigured) {
+        console.warn('⚠️  Supabase admin credentials missing. Admin image upload will not work.');
+        console.warn('   Missing: SUPABASE_SERVICE_ROLE_KEY');
+        console.warn('   Note: Service role key is required for server-side uploads.');
     }
 }
 
@@ -34,9 +40,20 @@ export const supabase = isSupabaseConfigured
     : null;
 
 // Server-side Supabase client with service role (for API routes)
-export const supabaseAdmin = (isSupabaseConfigured && supabaseServiceRoleKey)
+export const supabaseAdmin = isAdminConfigured
     ? createClient(supabaseUrl, supabaseServiceRoleKey)
     : null;
+
+// Helper to get configuration status
+export function getSupabaseConfigStatus() {
+    return {
+        clientConfigured: isSupabaseConfigured,
+        adminConfigured: isAdminConfigured,
+        hasUrl: !!supabaseUrl,
+        hasAnonKey: !!supabaseAnonKey,
+        hasServiceRoleKey: !!supabaseServiceRoleKey,
+    };
+}
 
 // Helper function to upload image to Supabase Storage
 export async function uploadImage(

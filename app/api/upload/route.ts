@@ -15,8 +15,33 @@ export async function POST(request: NextRequest) {
         logger.request('POST', '/api/upload', ip, user.id);
 
         if (!supabaseAdmin) {
+            const { getSupabaseConfigStatus } = await import('@/lib/supabase');
+            const config = getSupabaseConfigStatus();
+            
+            let errorMessage = 'Storage configuration missing.';
+            const missing: string[] = [];
+            
+            if (!config.hasUrl) missing.push('NEXT_PUBLIC_SUPABASE_URL');
+            if (!config.hasAnonKey) missing.push('NEXT_PUBLIC_SUPABASE_ANON_KEY');
+            if (!config.hasServiceRoleKey) missing.push('SUPABASE_SERVICE_ROLE_KEY');
+            
+            if (missing.length > 0) {
+                errorMessage = `Missing required environment variables: ${missing.join(', ')}. Please check your .env file.`;
+            } else {
+                errorMessage = 'Supabase admin client not initialized. Please check your environment variables.';
+            }
+            
+            logger.error('Image upload failed: Supabase not configured', {
+                userId: user.id,
+                config: {
+                    hasUrl: config.hasUrl,
+                    hasAnonKey: config.hasAnonKey,
+                    hasServiceRoleKey: config.hasServiceRoleKey,
+                }
+            });
+            
             return NextResponse.json(
-                { success: false, error: 'Storage configuration missing. Check NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.' },
+                { success: false, error: errorMessage },
                 { status: 500 }
             );
         }
@@ -124,8 +149,33 @@ export async function DELETE(request: NextRequest) {
         logger.request('DELETE', '/api/upload', ip, user.id);
 
         if (!supabaseAdmin) {
+            const { getSupabaseConfigStatus } = await import('@/lib/supabase');
+            const config = getSupabaseConfigStatus();
+            
+            let errorMessage = 'Storage configuration missing.';
+            const missing: string[] = [];
+            
+            if (!config.hasUrl) missing.push('NEXT_PUBLIC_SUPABASE_URL');
+            if (!config.hasAnonKey) missing.push('NEXT_PUBLIC_SUPABASE_ANON_KEY');
+            if (!config.hasServiceRoleKey) missing.push('SUPABASE_SERVICE_ROLE_KEY');
+            
+            if (missing.length > 0) {
+                errorMessage = `Missing required environment variables: ${missing.join(', ')}. Please check your .env file.`;
+            } else {
+                errorMessage = 'Supabase admin client not initialized. Please check your environment variables.';
+            }
+            
+            logger.error('Image delete failed: Supabase not configured', {
+                userId: user.id,
+                config: {
+                    hasUrl: config.hasUrl,
+                    hasAnonKey: config.hasAnonKey,
+                    hasServiceRoleKey: config.hasServiceRoleKey,
+                }
+            });
+            
             return NextResponse.json(
-                { success: false, error: 'Storage configuration missing. Check NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.' },
+                { success: false, error: errorMessage },
                 { status: 500 }
             );
         }
