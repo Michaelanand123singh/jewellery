@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import Navigation from "./Navigation";
 import { useCartStore, useAuthStore } from "@/lib/store";
 import { Product } from "@/lib/store";
-import { dedupedFetch } from "@/lib/fetch";
+import { apiClient } from "@/lib/api-client";
 
 export default function Header() {
   const router = useRouter();
@@ -59,14 +59,17 @@ export default function Header() {
       setIsSearching(true);
       searchTimeoutRef.current = setTimeout(async () => {
         try {
-          const data = await dedupedFetch<{
-            success: boolean;
-            data: Product[];
-          }>(`/api/products?search=${encodeURIComponent(searchQuery)}&limit=5`);
-
-          if (data.success) {
-            setSearchResults(data.data);
+          const response = await apiClient.get<Product[]>("/products", {
+            search: searchQuery,
+            limit: 5,
+          });
+          
+          if (response.success && response.data) {
+            setSearchResults(response.data);
             setShowSearchResults(true);
+          } else {
+            setSearchResults([]);
+            setShowSearchResults(false);
           }
         } catch (error) {
           console.error("Search failed:", error);
