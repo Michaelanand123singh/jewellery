@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { toast } from 'sonner';
+import { apiClient, ApiError } from './api-client';
 
 export interface Product {
   id: string;
@@ -80,14 +81,13 @@ export const useCartStore = create<CartStore>()(
           
           isSyncing = true;
           set({ isLoading: true });
-        try {
-          const response = await fetch('/api/cart');
-          if (response.ok) {
-            const data = await response.json();
-            if (data.success && data.data) {
+          
+          try {
+            const response = await apiClient.get<{ items: any[] }>('/cart');
+            if (response.success && response.data) {
               // Convert backend cart items to CartItem format
               // Store cartItemId for efficient updates/deletes (fixes Issue #1)
-              const backendItems: CartItem[] = data.data.items.map((item: any) => ({
+              const backendItems: CartItem[] = response.data.items.map((item: any) => ({
                 ...item.product,
                 quantity: item.quantity,
                 cartItemId: item.id, // Store backend cart item ID
@@ -123,11 +123,7 @@ export const useCartStore = create<CartStore>()(
                 // Sync local-only items to backend in background
                 Promise.all(
                   localOnly.map(item =>
-                    fetch('/api/cart', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ productId: item.id, quantity: item.quantity }),
-                    }).catch(err => {
+                    apiClient.post('/cart', { productId: item.id, quantity: item.quantity }).catch(err => {
                       console.error(`Failed to sync item ${item.id}:`, err);
                     })
                   )
@@ -137,15 +133,14 @@ export const useCartStore = create<CartStore>()(
               // Backend cart is empty, but keep local items
               // They'll be synced when user adds more items or explicitly syncs
             }
+          } catch (error) {
+            console.error('Failed to sync cart from backend:', error);
+            toast.error('Failed to sync cart. Some items may not be saved.');
+            // Keep local storage cart on error
+          } finally {
+            set({ isLoading: false });
+            isSyncing = false;
           }
-        } catch (error) {
-          console.error('Failed to sync cart from backend:', error);
-          toast.error('Failed to sync cart. Some items may not be saved.');
-          // Keep local storage cart on error
-        } finally {
-          set({ isLoading: false });
-          isSyncing = false;
-        }
       },
       addItem: async (product, quantity = 1) => {
         // Stock validation (fixes Issue #5)
@@ -189,45 +184,32 @@ export const useCartStore = create<CartStore>()(
         const authStore = useAuthStore.getState();
         if (authStore.user) {
           try {
-            const response = await fetch('/api/cart', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ productId: product.id, quantity }),
-            });
-            if (response.ok) {
+            const response = await apiClient.post<{ id: string }>('/cart', { productId: product.id, quantity });
+            if (response.success && response.data?.id) {
               // Store cartItemId from response for efficient future updates/deletes
-              const data = await response.json();
-              if (data.success && data.data?.id) {
-                // Update local state with cartItemId
-                set({
-                  items: get().items.map((item) =>
-                    item.id === product.id
-                      ? { ...item, cartItemId: data.data.id }
-                      : item
-                  ),
-                });
-              }
-            } else {
-              // Revert local change on error
-              const data = await response.json();
-              console.error('Failed to add to cart:', data.error);
-              // Revert to previous state
-              if (existingItem) {
-                set({
-                  items: items.map((item) =>
-                    item.id === product.id
-                      ? { ...item, quantity: oldQuantity }
-                      : item
-                  ),
-                });
-              } else {
-                set({ items });
-              }
+              set({
+                items: get().items.map((item) =>
+                  item.id === product.id
+                    ? { ...item, cartItemId: response.data!.id }
+                    : item
+                ),
+              });
             }
-          } catch (error) {
+          } catch (error: any) {
             console.error('Failed to sync cart to backend:', error);
-            toast.warning('Cart updated locally but may not sync to server');
-            // Keep local change even if sync fails
+            // Revert local change on error
+            if (existingItem) {
+              set({
+                items: items.map((item) =>
+                  item.id === product.id
+                    ? { ...item, quantity: oldQuantity }
+                    : item
+                ),
+              });
+            } else {
+              set({ items });
+            }
+            toast.error(error.message || 'Cart updated locally but may not sync to server');
           }
         }
       },
@@ -245,20 +227,12 @@ export const useCartStore = create<CartStore>()(
         if (authStore.user && itemToRemove?.cartItemId) {
           try {
             // Use stored cartItemId directly - no need for GET request
-            const response = await fetch(`/api/cart/${itemToRemove.cartItemId}`, {
-              method: 'DELETE',
-            });
-            if (!response.ok) {
-              // Revert on error
-              set({ items: [...get().items, itemToRemove] });
-              const data = await response.json();
-              console.error('Failed to remove from cart:', data.error);
-            }
-          } catch (error) {
+            await apiClient.delete(`/cart/${itemToRemove.cartItemId}`);
+          } catch (error: any) {
             // Revert on network error
             set({ items: [...get().items, itemToRemove] });
             console.error('Failed to sync cart removal to backend:', error);
-            toast.error('Failed to remove item. Please try again.');
+            toast.error(error.message || 'Failed to remove item. Please try again.');
           }
         }
       },
@@ -298,25 +272,9 @@ export const useCartStore = create<CartStore>()(
         if (authStore.user && existingItem?.cartItemId) {
           try {
             // Use stored cartItemId directly - no need for GET request
-            const response = await fetch(`/api/cart/${existingItem.cartItemId}`, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ quantity }),
-            });
-            if (!response.ok) {
-              // Revert local change on error
-              set({
-                items: items.map((item) =>
-                  item.id === productId
-                    ? { ...item, quantity: oldQuantity }
-                    : item
-                ),
-              });
-              const data = await response.json();
-              console.error('Failed to update cart quantity:', data.error);
-            }
-          } catch (error) {
-            // Revert on network error
+            await apiClient.put(`/cart/${existingItem.cartItemId}`, { quantity });
+          } catch (error: any) {
+            // Revert local change on error
             set({
               items: items.map((item) =>
                 item.id === productId
@@ -325,7 +283,7 @@ export const useCartStore = create<CartStore>()(
               ),
             });
             console.error('Failed to sync cart update to backend:', error);
-            toast.error('Failed to update quantity. Please try again.');
+            toast.error(error.message || 'Failed to update quantity. Please try again.');
           }
         }
       },
@@ -337,12 +295,10 @@ export const useCartStore = create<CartStore>()(
         const authStore = useAuthStore.getState();
         if (authStore.user) {
           try {
-            await fetch('/api/cart', {
-              method: 'DELETE',
-            });
-          } catch (error) {
+            await apiClient.delete('/cart');
+          } catch (error: any) {
             console.error('Failed to sync cart clear to backend:', error);
-            toast.warning('Cart cleared locally but may not sync to server');
+            toast.warning(error.message || 'Cart cleared locally but may not sync to server');
             // Keep local change even if sync fails
           }
         }
@@ -388,13 +344,12 @@ export const useWishlistStore = create<WishlistStore>()(
           
           isSyncing = true;
           set({ isLoading: true });
-        try {
-          const response = await fetch('/api/wishlist');
-          if (response.ok) {
-            const data = await response.json();
-            if (data.success && data.data) {
+          
+          try {
+            const response = await apiClient.get<{ items: any[] }>('/wishlist');
+            if (response.success && response.data) {
               // Convert backend wishlist items to Product format
-              const backendItems: Product[] = data.data.map((item: any) => ({
+              const backendItems: Product[] = response.data.items.map((item: any) => ({
                 ...item.product,
               }));
               
@@ -427,11 +382,7 @@ export const useWishlistStore = create<WishlistStore>()(
                 // Sync local-only items to backend in background
                 Promise.all(
                   localOnly.map(item =>
-                    fetch('/api/wishlist', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ productId: item.id }),
-                    }).catch(err => {
+                    apiClient.post('/wishlist', { productId: item.id }).catch(err => {
                       console.error(`Failed to sync wishlist item ${item.id}:`, err);
                     })
                   )
@@ -440,15 +391,14 @@ export const useWishlistStore = create<WishlistStore>()(
             } else {
               // Backend wishlist is empty, but keep local items
             }
+          } catch (error) {
+            console.error('Failed to sync wishlist from backend:', error);
+            toast.error('Failed to sync wishlist. Some items may not be saved.');
+            // Keep local storage wishlist on error
+          } finally {
+            set({ isLoading: false });
+            isSyncing = false;
           }
-        } catch (error) {
-          console.error('Failed to sync wishlist from backend:', error);
-          toast.error('Failed to sync wishlist. Some items may not be saved.');
-          // Keep local storage wishlist on error
-        } finally {
-          set({ isLoading: false });
-          isSyncing = false;
-        }
       },
       addItem: async (product) => {
         if (get().isInWishlist(product.id)) {
@@ -462,23 +412,14 @@ export const useWishlistStore = create<WishlistStore>()(
         const authStore = useAuthStore.getState();
         if (authStore.user) {
           try {
-            const response = await fetch('/api/wishlist', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ productId: product.id }),
+            await apiClient.post('/wishlist', { productId: product.id });
+          } catch (error: any) {
+            // Revert local change on error
+            set({
+              items: get().items.filter((item) => item.id !== product.id),
             });
-            if (!response.ok) {
-              // Revert local change on error
-              set({
-                items: get().items.filter((item) => item.id !== product.id),
-              });
-              const data = await response.json();
-              console.error('Failed to add to wishlist:', data.error);
-            }
-          } catch (error) {
             console.error('Failed to sync wishlist to backend:', error);
-            toast.warning('Wishlist updated locally but may not sync to server');
-            // Keep local change even if sync fails
+            toast.error(error.message || 'Wishlist updated locally but may not sync to server');
           }
         }
       },
@@ -495,22 +436,13 @@ export const useWishlistStore = create<WishlistStore>()(
         const authStore = useAuthStore.getState();
         if (authStore.user && removedItem) {
           try {
-            const response = await fetch(`/api/wishlist?productId=${productId}`, {
-              method: 'DELETE',
-            });
-            if (!response.ok) {
-              // Revert local change on error (restore item)
-              const currentItems = get().items;
-              set({ items: [...currentItems, removedItem] }); // Add removed item back
-              const data = await response.json();
-              console.error('Failed to remove from wishlist:', data.error);
-            }
-          } catch (error) {
-            // Revert on network error too
+            await apiClient.delete('/wishlist', { productId });
+          } catch (error: any) {
+            // Revert local change on error (restore item)
             const currentItems = get().items;
             set({ items: [...currentItems, removedItem] }); // Add removed item back
             console.error('Failed to sync wishlist removal to backend:', error);
-            toast.error('Failed to remove item. Please try again.');
+            toast.error(error.message || 'Failed to remove item. Please try again.');
           }
         }
       },
@@ -543,16 +475,9 @@ export const useAuthStore = create<AuthStore>()((set, get) => {
       
       authPromise = (async () => {
         try {
-          const response = await fetch('/api/auth/me', {
-            cache: 'no-store', // Auth endpoints should never be cached
-          });
-          if (response.ok) {
-            const data = await response.json();
-            if (data.success && data.data) {
-              set({ user: data.data });
-            } else {
-              set({ user: null });
-            }
+          const response = await apiClient.get<User>('/auth/me');
+          if (response.success && response.data) {
+            set({ user: response.data });
           } else {
             set({ user: null });
           }
@@ -569,7 +494,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => {
     },
     logout: async () => {
       try {
-        await fetch('/api/auth/logout', { method: 'POST' });
+        await apiClient.post('/auth/logout');
       } catch (error) {
         console.error('Logout failed:', error);
       }

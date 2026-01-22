@@ -1,0 +1,22 @@
+/**
+ * User routes layout
+ * Protected user dashboard pages (account, cart, checkout, wishlist)
+ */
+
+import Header from "@/components/layout/Header";
+import Footer from "@/components/layout/Footer";
+
+export default function UserLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <>
+      <Header />
+      {children}
+      <Footer />
+    </>
+  );
+}
+

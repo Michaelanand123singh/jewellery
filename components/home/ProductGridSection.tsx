@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import ProductCard from "./ProductCard";
 import { Product } from "@/lib/store";
-import { dedupedFetch } from "@/lib/fetch";
+import { apiClient } from "@/lib/api-client";
 
 export default function ProductGridSection() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -18,11 +18,9 @@ export default function ProductGridSection() {
 
     const fetchProducts = async () => {
       try {
-        const data = await dedupedFetch<{ success: boolean; data: Product[] }>(
-          "/api/products?limit=12"
-        );
-        if (data.success) {
-          setProducts(data.data);
+        const response = await apiClient.get<Product[]>("/products", { limit: 12 });
+        if (response.success && response.data) {
+          setProducts(response.data);
         }
       } catch (error) {
         console.error("Failed to fetch products:", error);
