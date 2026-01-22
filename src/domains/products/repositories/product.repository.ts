@@ -26,7 +26,12 @@ export class ProductRepository {
     const where: any = {};
 
     if (filters?.category) {
-      where.category = filters.category;
+      // Use startsWith to match categories like "women-rings" when filtering by "women"
+      // This allows subcategories to be stored as "category-subcategory" format
+      where.category = {
+        startsWith: filters.category,
+        mode: 'insensitive',
+      };
     }
 
     if (filters?.search) {

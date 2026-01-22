@@ -25,7 +25,7 @@ export default function WishlistPage() {
   }, [user, syncWishlist]);
 
   return (
-    <main className="flex-grow container mx-auto px-4 py-8">
+      <main className="flex-grow container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-8">My Wishlist</h1>
 
         {isLoading ? (

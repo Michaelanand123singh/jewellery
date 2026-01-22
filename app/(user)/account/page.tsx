@@ -147,7 +147,7 @@ export default function AccountPage() {
   }
 
   return (
-    <main className="flex-grow container mx-auto px-4 py-8">
+      <main className="flex-grow container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-8">My Account</h1>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">

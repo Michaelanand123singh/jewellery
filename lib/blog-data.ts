@@ -286,6 +286,78 @@ export const blogPosts: BlogPost[] = [
   },
 ];
 
+// API-based functions (preferred)
+export async function getBlogPostBySlugFromAPI(slug: string): Promise<BlogPost | null> {
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || ''}/api/v1/blogs/slug/${slug}`, {
+      cache: 'no-store',
+    });
+    if (!response.ok) return null;
+    const data = await response.json();
+    if (data.success && data.data) {
+      return transformBlogToBlogPost(data.data);
+    }
+    return null;
+  } catch (error) {
+    console.error('Error fetching blog from API:', error);
+    return null;
+  }
+}
+
+export async function getAllBlogPostsFromAPI(): Promise<BlogPost[]> {
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || ''}/api/v1/blogs?published=true&limit=100`, {
+      cache: 'no-store',
+    });
+    if (!response.ok) return [];
+    const data = await response.json();
+    if (data.success && data.data) {
+      return data.data.map(transformBlogToBlogPost);
+    }
+    return [];
+  } catch (error) {
+    console.error('Error fetching blogs from API:', error);
+    return [];
+  }
+}
+
+// Transform database Blog to frontend BlogPost format
+function transformBlogToBlogPost(blog: any): BlogPost {
+  // Convert string ID to number for compatibility (use hash if needed)
+  const numericId = typeof blog.id === 'string' 
+    ? parseInt(blog.id.replace(/\D/g, '').slice(0, 10)) || Math.abs(blog.id.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0))
+    : blog.id;
+
+  return {
+    id: numericId,
+    title: blog.title,
+    excerpt: blog.excerpt,
+    image: blog.image,
+    date: blog.publishedAt 
+      ? new Date(blog.publishedAt).toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        })
+      : new Date(blog.createdAt).toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        }),
+    category: blog.category,
+    slug: blog.slug,
+    content: blog.content,
+    author: blog.author,
+    readTime: blog.readTime,
+    tags: blog.tags || [],
+    faqs: blog.faqs?.map((faq: any) => ({
+      question: faq.question,
+      answer: faq.answer,
+    })) || [],
+  };
+}
+
+// Legacy static functions (fallback)
 export function getBlogPostBySlug(slug: string): BlogPost | undefined {
   return blogPosts.find((post) => post.slug === slug);
 }

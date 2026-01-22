@@ -57,7 +57,11 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=120');
+    // Reduced cache time for product listings to ensure fresh data
+    // Use no-cache for product listings to ensure admin updates are visible immediately
+    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
     return response;
   } catch (error) {
     return handleApiError(error);

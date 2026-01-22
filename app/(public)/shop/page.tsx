@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, Suspense } from "react";
+import { useState, useEffect, useMemo, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { apiClient } from "@/lib/api-client";
 import Link from "next/link";
@@ -28,8 +28,12 @@ import {
   Filter,
   Star,
   SlidersHorizontal,
+  Search,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 
 // Category mapping from URL to display names
 const categoryMap: Record<string, string> = {
@@ -72,12 +76,15 @@ function ShopPageContent() {
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
   const [filterInStock, setFilterInStock] = useState(false);
   const [filterOnSale, setFilterOnSale] = useState(false);
+  const [selectedGender, setSelectedGender] = useState<string>("");
   const [products, setProducts] = useState<Product[]>([]);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalPages, setTotalPages] = useState(1);
   const [totalProducts, setTotalProducts] = useState(0);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [showMoreCategories, setShowMoreCategories] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Update URL params helper
   const updateURL = (updates: Record<string, string | number | null | undefined>) => {
@@ -99,71 +106,116 @@ function ShopPageContent() {
     router.push(`/shop?${params.toString()}`);
   };
 
-  // Fetch products
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
+  // Fetch products function (memoized with useCallback)
+  const fetchProducts = useCallback(async (showRefreshing = false) => {
+    try {
+      if (showRefreshing) {
+        setRefreshing(true);
+      } else {
         setLoading(true);
-        const queryParams = new URLSearchParams();
-        
-        if (category) queryParams.append("category", category);
-        if (search) queryParams.append("search", search);
-        if (minPrice !== null) queryParams.append("minPrice", String(minPrice));
-        if (maxPrice !== null) queryParams.append("maxPrice", String(maxPrice));
-        if (sortBy) queryParams.append("sortBy", sortBy);
-        if (sortOrder) queryParams.append("sortOrder", sortOrder);
-        queryParams.append("page", String(page));
-        queryParams.append("limit", String(limit));
+      }
+      
+      const params: Record<string, string | number> = {};
+      if (category) params.category = category;
+      if (search) params.search = search;
+      if (minPrice !== null) params.minPrice = minPrice;
+      if (maxPrice !== null) params.maxPrice = maxPrice;
+      if (sortBy) params.sortBy = sortBy;
+      if (sortOrder) params.sortOrder = sortOrder;
+      params.page = page;
+      params.limit = limit;
 
-        const params: Record<string, string | number> = {};
-        if (category) params.category = category;
-        if (search) params.search = search;
-        if (minPrice !== null) params.minPrice = minPrice;
-        if (maxPrice !== null) params.maxPrice = maxPrice;
-        if (sortBy) params.sortBy = sortBy;
-        if (sortOrder) params.sortOrder = sortOrder;
-        params.page = page;
-        params.limit = limit;
-
-        const response = await apiClient.get<Product[]>("/products", params);
+      const response = await apiClient.get<Product[]>("/products", params);
+      
+      if (response.success && response.data) {
+        setProducts(response.data);
+        setTotalPages(response.meta?.totalPages || 1);
+        setTotalProducts(response.meta?.total || 0);
         
-        if (response.success && response.data) {
-          setProducts(response.data);
-          setTotalPages(response.meta?.totalPages || 1);
-          setTotalProducts(response.meta?.total || 0);
-          
-          // Set max price range based on all products
-          if (response.data.length > 0) {
-            const maxPrice = Math.max(...response.data.map((p: Product) => p.price));
-            setPriceRange((prev) => [prev[0], Math.max(prev[1] || 10000, maxPrice)]);
-          }
+        // Set max price range based on all products
+        if (response.data.length > 0) {
+          const maxPrice = Math.max(...response.data.map((p: Product) => p.price));
+          setPriceRange((prev) => [prev[0], Math.max(prev[1] || 10000, maxPrice)]);
         }
-      } catch (error) {
-        console.error("Failed to fetch products:", error);
-      } finally {
+      }
+    } catch (error) {
+      console.error("Failed to fetch products:", error);
+    } finally {
+      if (showRefreshing) {
+        setRefreshing(false);
+      } else {
         setLoading(false);
       }
-    };
+    }
+  }, [category, search, minPrice, maxPrice, sortBy, sortOrder, page, limit]);
 
-    fetchProducts();
-  }, [category, search, minPrice, maxPrice, sortBy, sortOrder, page]);
-
-  // Fetch all products for filters (once)
+  // Fetch products on mount and when filters change
   useEffect(() => {
-    const fetchAllProducts = async () => {
-      try {
-        const response = await apiClient.get<Product[]>("/products", { limit: 1000 });
-        if (response.success && response.data) {
-          setAllProducts(response.data);
-          const maxPrice = Math.max(...response.data.map((p: Product) => p.price));
-          setPriceRange([0, Math.max(10000, maxPrice)]);
-        }
-      } catch (error) {
-        console.error("Failed to fetch all products:", error);
+    fetchProducts();
+    
+    // Refresh products when page becomes visible (user switches back to tab)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchProducts(true);
       }
     };
+    
+    // Refresh on window focus
+    const handleFocus = () => {
+      fetchProducts(true);
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [fetchProducts]);
+
+  // Fetch all products for filters (refresh on page focus/visibility change)
+  const fetchAllProducts = async () => {
+    try {
+      const response = await apiClient.get<Product[]>("/products", { limit: 1000 });
+      if (response.success && response.data) {
+        setAllProducts(response.data);
+        const maxPrice = Math.max(...response.data.map((p: Product) => p.price));
+        setPriceRange([0, Math.max(10000, maxPrice)]);
+      }
+    } catch (error) {
+      console.error("Failed to fetch all products:", error);
+    }
+  };
+
+  useEffect(() => {
     fetchAllProducts();
+    
+    // Refresh when page becomes visible (user switches back to tab)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchAllProducts();
+      }
+    };
+    
+    // Refresh on window focus
+    const handleFocus = () => {
+      fetchAllProducts();
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
+
+  // Manual refresh handler
+  const handleRefresh = async () => {
+    await Promise.all([fetchProducts(true), fetchAllProducts()]);
+  };
 
   // Sync local state with URL params
   useEffect(() => {
@@ -183,10 +235,37 @@ function ShopPageContent() {
     }
   }, [category, rating, inStock, onSale, minPrice, maxPrice]);
 
-  // Get unique categories from all products
+  // Get unique categories from all products with counts
   const availableCategories = useMemo(() => {
-    return Array.from(new Set(allProducts.map((p) => p.category))).sort();
+    const categoryCounts = allProducts.reduce((acc, product) => {
+      acc[product.category] = (acc[product.category] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    return Object.entries(categoryCounts)
+      .map(([category, count]) => ({ category, count }))
+      .sort((a, b) => b.count - a.count);
   }, [allProducts]);
+
+  // Category display names mapping
+  const categoryDisplayNames: Record<string, string> = {
+    "women": "Women",
+    "kids": "Kids",
+    "artificial": "Artificial Jewellery",
+    "footwear": "Footwear",
+    "accessories": "Accessories",
+    "earrings": "Earrings",
+    "bangle": "Bangle",
+    "necklace": "Necklace and Chains",
+    "bracelet": "Bracelet",
+    "jewellery-set": "Jewellery Set",
+    "ring": "Ring",
+    "pendant": "Pendant",
+    "mangalsutra": "Mangalsutra",
+  };
+
+  // Gender options
+  const genderOptions = ["Men", "Women", "Boys", "Girls"];
 
   // Filter products based on all criteria
   const filteredProducts = useMemo(() => {
@@ -325,20 +404,19 @@ function ShopPageContent() {
     updateURL({ onSale: checked ? "true" : null });
   };
 
-  // Breadcrumbs
+  // Breadcrumbs - matching image style
   const breadcrumbs = [
     { label: "Home", href: "/" },
-    { label: "Shop", href: "/shop" },
-    ...(category ? [{ label: categoryMap[category] || category, href: `/shop?category=${category}` }] : []),
-    ...(subcategory ? [{ label: subcategoryMap[subcategory] || subcategory, href: null }] : []),
+    { label: "Accessories", href: "/shop?category=accessories" },
+    { label: category ? (categoryMap[category] || category) : "Jewellery", href: null },
   ];
 
   return (
     <main className="flex-grow">
         {/* Breadcrumbs */}
-        <div className="bg-muted/30 border-b">
+        <div className="bg-background border-b">
           <div className="container mx-auto px-4 py-3">
-            <nav className="flex items-center gap-2 text-sm">
+            <nav className="flex items-center gap-2 text-sm text-muted-foreground">
               {breadcrumbs.map((crumb, index) => (
                 <div key={index} className="flex items-center gap-2">
                   {index === 0 ? (
@@ -347,13 +425,13 @@ function ShopPageContent() {
                     </Link>
                   ) : (
                     <>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-muted-foreground">/</span>
                       {crumb.href ? (
-                        <Link href={crumb.href} className="hover:text-primary transition-colors capitalize">
+                        <Link href={crumb.href} className="hover:text-primary transition-colors">
                           {crumb.label}
                         </Link>
                       ) : (
-                        <span className="text-foreground capitalize">{crumb.label}</span>
+                        <span className="text-foreground">{crumb.label}</span>
                       )}
                     </>
                   )}
@@ -364,14 +442,11 @@ function ShopPageContent() {
         </div>
 
         <div className="container mx-auto px-4 py-6 md:py-8">
-          {/* Header */}
-          <div className="mb-4 sm:mb-6 md:mb-8">
-            <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-1 sm:mb-2 capitalize">
-              {category ? categoryMap[category] || category : subcategory ? subcategoryMap[subcategory] || subcategory : "Shop All"}
+          {/* Header with Item Count */}
+          <div className="mb-6 md:mb-8">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 capitalize">
+              {category ? categoryMap[category] || category : subcategory ? subcategoryMap[subcategory] || subcategory : "Jewellery"} - {totalProducts.toLocaleString()} items
             </h1>
-            <p className="text-sm sm:text-base text-muted-foreground">
-              {search ? `Search results for "${search}"` : "Discover our exquisite collection of jewelry"}
-            </p>
           </div>
 
           {/* Active Filters */}
@@ -405,7 +480,7 @@ function ShopPageContent() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-6 gap-4 sm:gap-4 lg:gap-6">
             {/* Sidebar Filters */}
             <aside className="lg:col-span-1">
               {/* Mobile Filter Toggle */}
@@ -430,13 +505,81 @@ function ShopPageContent() {
 
               <div
                 className={cn(
-                  "space-y-4 sm:space-y-6 lg:sticky lg:top-24 max-h-[calc(100vh-150px)] overflow-y-auto lg:max-h-none",
+                  "space-y-5 lg:sticky lg:top-24 max-h-[calc(100vh-150px)] overflow-y-auto lg:max-h-none pr-2",
                   showMobileFilters ? "block" : "hidden lg:block"
                 )}
               >
+                {/* FILTERS Heading */}
+                <div>
+                  <h2 className="text-sm font-bold uppercase tracking-wide mb-3">FILTERS</h2>
+                  
+                  {/* Gender Filter */}
+                  <div className="mb-5">
+                    <RadioGroup
+                      value={selectedGender}
+                      onValueChange={(value) => {
+                        setSelectedGender(value);
+                        // You can add gender filtering logic here
+                      }}
+                    >
+                      <div className="space-y-2">
+                        {genderOptions.map((gender) => (
+                          <div key={gender} className="flex items-center space-x-2">
+                            <RadioGroupItem value={gender.toLowerCase()} id={`gender-${gender.toLowerCase()}`} className="h-3.5 w-3.5" />
+                            <Label
+                              htmlFor={`gender-${gender.toLowerCase()}`}
+                              className="text-xs font-normal cursor-pointer"
+                            >
+                              {gender}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                    </RadioGroup>
+                  </div>
+                </div>
+
+                {/* CATEGORIES Heading */}
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-sm font-bold uppercase tracking-wide">CATEGORIES</h2>
+                    <Search className="h-3.5 w-3.5 text-muted-foreground" />
+                  </div>
+                  
+                  <div className="space-y-2.5 max-h-96 overflow-y-auto">
+                    {(showMoreCategories ? availableCategories : availableCategories.slice(0, 8)).map(({ category: cat, count }) => (
+                      <div key={cat} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={cat}
+                          checked={selectedCategories.includes(cat) || category === cat}
+                          onCheckedChange={() => toggleCategory(cat)}
+                          className="h-3.5 w-3.5"
+                        />
+                        <label
+                          htmlFor={cat}
+                          className="text-xs font-normal leading-none cursor-pointer flex-1 flex items-center justify-between"
+                        >
+                          <span className="capitalize">
+                            {categoryDisplayNames[cat] || cat.replace(/-/g, " ")}
+                          </span>
+                          <span className="text-muted-foreground ml-2 text-[10px]">({count.toLocaleString()})</span>
+                        </label>
+                      </div>
+                    ))}
+                    {availableCategories.length > 8 && (
+                      <button
+                        onClick={() => setShowMoreCategories(!showMoreCategories)}
+                        className="text-xs text-primary hover:underline mt-2"
+                      >
+                        {showMoreCategories ? "Show Less" : `+ ${availableCategories.length - 8} more`}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
                 {/* Price Range Filter */}
-                <div className="border-b pb-6">
-                  <h3 className="font-semibold mb-4 text-sm uppercase tracking-wide">Price Range</h3>
+                <div className="border-t pt-5">
+                  <h3 className="font-semibold mb-3 text-xs uppercase tracking-wide">Price Range</h3>
                   <Slider
                     value={priceRange}
                     onValueChange={handlePriceRangeChange}
@@ -445,37 +588,15 @@ function ShopPageContent() {
                     step={100}
                     className="mb-4"
                   />
-                  <div className="flex justify-between text-sm text-muted-foreground">
+                  <div className="flex justify-between text-xs text-muted-foreground">
                     <span>₹{priceRange[0].toLocaleString()}</span>
                     <span>₹{priceRange[1].toLocaleString()}</span>
                   </div>
                 </div>
 
-                {/* Category Filter */}
-                <div className="border-b pb-6">
-                  <h3 className="font-semibold mb-4 text-sm uppercase tracking-wide">Category</h3>
-                  <div className="space-y-2 max-h-64 overflow-y-auto">
-                    {availableCategories.map((cat) => (
-                      <div key={cat} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={cat}
-                          checked={selectedCategories.includes(cat) || category === cat}
-                          onCheckedChange={() => toggleCategory(cat)}
-                        />
-                        <label
-                          htmlFor={cat}
-                          className="text-sm font-medium leading-none cursor-pointer capitalize"
-                        >
-                          {cat.replace(/-/g, " ")}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
                 {/* Rating Filter */}
-                <div className="border-b pb-6">
-                  <h3 className="font-semibold mb-4 text-sm uppercase tracking-wide">Rating</h3>
+                <div className="border-t pt-5">
+                  <h3 className="font-semibold mb-3 text-xs uppercase tracking-wide">Rating</h3>
                   <div className="space-y-2">
                     {[4, 3, 2, 1].map((r) => (
                       <div key={r} className="flex items-center space-x-2">
@@ -485,21 +606,22 @@ function ShopPageContent() {
                           onCheckedChange={(checked) =>
                             handleRatingChange(checked ? r : null)
                           }
+                          className="h-3.5 w-3.5"
                         />
                         <label
                           htmlFor={`rating-${r}`}
-                          className="text-sm font-medium leading-none cursor-pointer flex items-center gap-1"
+                          className="text-xs font-normal leading-none cursor-pointer flex items-center gap-1"
                         >
                           {[...Array(5)].map((_, i) => (
                             <Star
                               key={i}
                               className={cn(
-                                "h-3 w-3",
+                                "h-2.5 w-2.5",
                                 i < r ? "fill-primary text-primary" : "text-muted-foreground"
                               )}
                             />
                           ))}
-                          <span className="ml-1">& Up</span>
+                          <span className="ml-1 text-[10px]">& Up</span>
                         </label>
                       </div>
                     ))}
@@ -507,16 +629,17 @@ function ShopPageContent() {
                 </div>
 
                 {/* Additional Filters */}
-                <div className="space-y-3">
+                <div className="border-t pt-5 space-y-2.5">
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="inStock"
                       checked={filterInStock}
                       onCheckedChange={handleInStockChange}
+                      className="h-3.5 w-3.5"
                     />
                     <label
                       htmlFor="inStock"
-                      className="text-sm font-medium leading-none cursor-pointer"
+                      className="text-xs font-normal leading-none cursor-pointer"
                     >
                       In Stock Only
                     </label>
@@ -526,10 +649,11 @@ function ShopPageContent() {
                       id="onSale"
                       checked={filterOnSale}
                       onCheckedChange={handleOnSaleChange}
+                      className="h-3.5 w-3.5"
                     />
                     <label
                       htmlFor="onSale"
-                      className="text-sm font-medium leading-none cursor-pointer"
+                      className="text-xs font-normal leading-none cursor-pointer"
                     >
                       On Sale
                     </label>
@@ -539,16 +663,58 @@ function ShopPageContent() {
             </aside>
 
             {/* Products Section */}
-            <div className="lg:col-span-3">
-              {/* Toolbar */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
-                <div className="flex items-center gap-2 sm:gap-4">
-                  <p className="text-xs sm:text-sm text-muted-foreground">
-                    Showing <span className="font-semibold text-foreground">{filteredProducts.length}</span> of{" "}
-                    <span className="font-semibold text-foreground">{totalProducts}</span> products
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+            <div className="lg:col-span-5">
+              {/* Top Filter Bar */}
+              <div className="flex flex-wrap items-center gap-2 mb-4 pb-4 border-b">
+                <Select defaultValue="all">
+                  <SelectTrigger className="w-[130px] text-xs">
+                    <SelectValue placeholder="Bundles" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Bundles</SelectItem>
+                    <SelectItem value="combo">Combo Offers</SelectItem>
+                    <SelectItem value="set">Sets</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                <Select defaultValue="all">
+                  <SelectTrigger className="w-[150px] text-xs">
+                    <SelectValue placeholder="Country of Origin" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Countries</SelectItem>
+                    <SelectItem value="india">India</SelectItem>
+                    <SelectItem value="usa">USA</SelectItem>
+                    <SelectItem value="uk">UK</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                <Select defaultValue="all">
+                  <SelectTrigger className="w-[110px] text-xs">
+                    <SelectValue placeholder="Size" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Sizes</SelectItem>
+                    <SelectItem value="small">Small</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="large">Large</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                <div className="flex-1"></div>
+                
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRefresh}
+                    disabled={refreshing || loading}
+                    className="h-8 px-3 text-xs"
+                    aria-label="Refresh products"
+                  >
+                    <RefreshCw className={cn("h-3.5 w-3.5 mr-1.5", (refreshing || loading) && "animate-spin")} />
+                    Refresh
+                  </Button>
                   <div className="flex items-center gap-1 border rounded-md p-1">
                     <Button
                       variant={viewMode === "grid" ? "default" : "ghost"}
@@ -576,12 +742,12 @@ function ShopPageContent() {
                       updateURL({ sortBy: newSortBy, sortOrder: newSortOrder });
                     }}
                   >
-                    <SelectTrigger className="w-full sm:w-[140px] lg:w-[180px] text-xs sm:text-sm">
-                      <SelectValue placeholder="Sort by" />
+                    <SelectTrigger className="w-[160px] text-xs">
+                      <SelectValue placeholder="Sort by: Recommended" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="createdAt-desc">Newest First</SelectItem>
-                      <SelectItem value="createdAt-asc">Oldest First</SelectItem>
+                      <SelectItem value="createdAt-desc">Recommended</SelectItem>
+                      <SelectItem value="createdAt-asc">Newest First</SelectItem>
                       <SelectItem value="price-asc">Price: Low to High</SelectItem>
                       <SelectItem value="price-desc">Price: High to Low</SelectItem>
                       <SelectItem value="name-asc">Name: A to Z</SelectItem>
@@ -597,11 +763,11 @@ function ShopPageContent() {
                 <div
                   className={
                     viewMode === "grid"
-                      ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+                      ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4"
                       : "space-y-4"
                   }
                 >
-                  {[...Array(6)].map((_, index) => (
+                  {[...Array(10)].map((_, index) => (
                     <div
                       key={index}
                       className={cn(
@@ -633,7 +799,7 @@ function ShopPageContent() {
                   <div
                     className={
                       viewMode === "grid"
-                        ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+                        ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4"
                         : "space-y-4"
                     }
                   >

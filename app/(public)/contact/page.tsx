@@ -142,8 +142,8 @@ export default function ContactPage() {
                       <h3 className="font-semibold text-base sm:text-lg mb-1 sm:mb-2">{info.title}</h3>
                       <p className="text-xs sm:text-sm font-medium mb-1">{info.content}</p>
                       <p className="text-xs text-muted-foreground">{info.subContent}</p>
-                    </CardContent>
-                  </Card>
+            </CardContent>
+          </Card>
                 </motion.div>
               );
             })}
@@ -170,11 +170,11 @@ export default function ContactPage() {
                     <div>
                       <CardTitle className="text-xl sm:text-2xl">Send us a Message</CardTitle>
                       <CardDescription className="mt-1 text-xs sm:text-sm">
-                        Fill out the form below and we'll get back to you as soon as possible.
-                      </CardDescription>
+                Fill out the form below and we'll get back to you as soon as possible.
+              </CardDescription>
                     </div>
                   </div>
-                </CardHeader>
+            </CardHeader>
                 <CardContent className="p-4 sm:p-6">
                   {isSubmitted ? (
                     <div className="text-center py-12">
@@ -193,31 +193,31 @@ export default function ContactPage() {
                           <Label htmlFor="name" className="text-sm font-semibold">
                             Full Name <span className="text-destructive">*</span>
                           </Label>
-                          <Input
-                            id="name"
-                            name="name"
-                            value={formData.name}
-                            onChange={handleChange}
-                            required
+                  <Input
+                    id="name"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    required
                             placeholder="John Doe"
                             className="h-11"
-                          />
-                        </div>
+                  />
+                </div>
                         <div className="space-y-2">
                           <Label htmlFor="email" className="text-sm font-semibold">
                             Email Address <span className="text-destructive">*</span>
                           </Label>
-                          <Input
-                            id="email"
-                            name="email"
-                            type="email"
-                            value={formData.email}
-                            onChange={handleChange}
-                            required
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    required
                             placeholder="john@example.com"
                             className="h-11"
-                          />
-                        </div>
+                  />
+                </div>
                       </div>
                       
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
@@ -225,12 +225,12 @@ export default function ContactPage() {
                           <Label htmlFor="phone" className="text-sm font-semibold">
                             Phone Number
                           </Label>
-                          <Input
-                            id="phone"
-                            name="phone"
-                            type="tel"
-                            value={formData.phone}
-                            onChange={handleChange}
+                  <Input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    value={formData.phone}
+                    onChange={handleChange}
                             placeholder="+91 1234567890"
                             className="h-11"
                           />
@@ -247,25 +247,25 @@ export default function ContactPage() {
                             required
                             placeholder="How can we help?"
                             className="h-11"
-                          />
-                        </div>
+                  />
+                </div>
                       </div>
 
                       <div className="space-y-2">
                         <Label htmlFor="message" className="text-sm font-semibold">
                           Message <span className="text-destructive">*</span>
                         </Label>
-                        <Textarea
-                          id="message"
-                          name="message"
-                          value={formData.message}
-                          onChange={handleChange}
-                          required
+                  <Textarea
+                    id="message"
+                    name="message"
+                    value={formData.message}
+                    onChange={handleChange}
+                    required
                           rows={6}
                           placeholder="Tell us more about your inquiry..."
                           className="resize-none"
-                        />
-                      </div>
+                  />
+                </div>
 
                       <Button 
                         type="submit" 
@@ -281,11 +281,11 @@ export default function ContactPage() {
                         ) : (
                           <>
                             <Send className="h-4 w-4 mr-2" />
-                            Send Message
+                  Send Message
                           </>
                         )}
-                      </Button>
-                    </form>
+                </Button>
+              </form>
                   )}
                 </CardContent>
               </Card>
@@ -382,12 +382,12 @@ export default function ContactPage() {
                       </p>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+            </CardContent>
+          </Card>
             </motion.div>
           </div>
         </div>
       </section>
-    </main>
+      </main>
   );
 }

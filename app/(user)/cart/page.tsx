@@ -31,7 +31,7 @@ export default function CartPage() {
   const total = subtotal + shipping;
 
   return (
-    <main className="flex-grow container mx-auto px-4 py-8">
+      <main className="flex-grow container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-8">Shopping Cart</h1>
 
         {isLoading ? (

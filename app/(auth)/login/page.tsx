@@ -18,7 +18,7 @@ import { apiClient } from "@/lib/api-client";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { checkAuth } = useAuthStore();
+  const { checkAuth, user } = useAuthStore();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -36,8 +36,19 @@ export default function LoginPage() {
       if (response.success) {
         // Update auth state
         await checkAuth();
-        // Redirect to home or account page
-        router.push("/");
+        
+        // Get user data from response to check role (response data is immediate)
+        const userData = response.data as { role?: string } | undefined;
+        
+        // Use response data first, fallback to auth store user
+        const userRole = userData?.role || user?.role;
+        
+        // Redirect based on user role
+        if (userRole === "ADMIN") {
+          router.push("/admin");
+        } else {
+          router.push("/");
+        }
         router.refresh();
       } else {
         setError(response.error || "Login failed. Please try again.");

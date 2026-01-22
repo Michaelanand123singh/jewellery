@@ -22,10 +22,35 @@ export async function GET(
     const productService = new ProductService();
     const product = await productService.getProductById(id);
 
-    return NextResponse.json({
-      success: true,
-      data: product,
+    // Fetch reviews for the product (matching /api/products/[id] behavior)
+    const { prisma } = await import('@/lib/prisma');
+    const reviews = await prisma.review.findMany({
+      where: { productId: id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
     });
+
+    const response = NextResponse.json({
+      success: true,
+      data: {
+        ...product,
+        reviews,
+      },
+    });
+
+    // Add cache headers (60 seconds cache, allow stale for 120 seconds)
+    response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=120');
+
+    return response;
   } catch (error) {
     return handleApiError(error);
   }

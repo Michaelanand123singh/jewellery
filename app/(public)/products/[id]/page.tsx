@@ -203,7 +203,7 @@ export default function ProductPage({
             <div className="aspect-square bg-gradient-to-br from-muted via-muted/50 to-muted animate-pulse rounded-2xl" />
             <div className="space-y-6">
               <div className="h-10 bg-muted animate-pulse rounded-lg w-3/4" />
-              <div className="h-6 bg-muted animate-pulse rounded w-1/2" />
+            <div className="h-6 bg-muted animate-pulse rounded w-1/2" />
               <div className="h-16 bg-muted animate-pulse rounded-lg w-full" />
               <div className="h-32 bg-muted animate-pulse rounded-lg w-full" />
             </div>
@@ -270,8 +270,8 @@ export default function ProductPage({
     if (isInWishlist) {
       toast.info(`${product.name} is already in your wishlist`);
     } else {
-      addToWishlist(product);
-      toast.success(`${product.name} added to wishlist!`);
+    addToWishlist(product);
+    toast.success(`${product.name} added to wishlist!`);
     }
   };
 
@@ -298,67 +298,90 @@ export default function ProductPage({
     }
   ];
 
+  // Helper function to generate slug from name
+  const generateSlug = (name: string): string => {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "");
+  };
+
   // Sample products for each promotional tab
   const sampleProducts: { [key: string]: Product[] } = {
     b1g1: [
       {
         id: "b1g1-1",
         name: "Hearts All Over Bracelet",
+        slug: generateSlug("Hearts All Over Bracelet"),
         price: 2229,
         originalPrice: 3184,
         image: "/img/product/1.jpg",
         images: ["/img/product/1.jpg"],
         category: "women",
         rating: 4.5,
+        reviewCount: 0,
         inStock: true,
+        stockQuantity: 0,
         description: "Beautiful bracelet with heart charms"
       },
       {
         id: "b1g1-2",
         name: "Plain Ball Stud Earrings",
+        slug: generateSlug("Plain Ball Stud Earrings"),
         price: 1495,
         originalPrice: 2136,
         image: "/img/product/2.jpg",
         images: ["/img/product/2.jpg"],
         category: "women",
         rating: 4.2,
+        reviewCount: 0,
         inStock: true,
+        stockQuantity: 0,
         description: "Classic ball stud earrings"
       },
       {
         id: "b1g1-3",
         name: "Crystal Love Bangle Bracelet",
+        slug: generateSlug("Crystal Love Bangle Bracelet"),
         price: 2659,
         originalPrice: 3799,
         image: "/img/product/3.jpg",
         images: ["/img/product/3.jpg"],
         category: "women",
         rating: 4.8,
+        reviewCount: 0,
         inStock: true,
+        stockQuantity: 0,
         description: "Elegant bangle with crystal details"
       },
       {
         id: "b1g1-4",
         name: "Diamond Affair Bracelet",
+        slug: generateSlug("Diamond Affair Bracelet"),
         price: 2553,
         originalPrice: 3647,
         image: "/img/product/4.jpg",
         images: ["/img/product/4.jpg"],
         category: "women",
         rating: 4.7,
+        reviewCount: 0,
         inStock: true,
+        stockQuantity: 0,
         description: "Delicate diamond bracelet"
       },
       {
         id: "b1g1-5",
         name: "Athena Solitaire Hoop Earrings",
+        slug: generateSlug("Athena Solitaire Hoop Earrings"),
         price: 2258,
         originalPrice: 3226,
         image: "/img/product/5.jpg",
         images: ["/img/product/5.jpg"],
         category: "women",
         rating: 4.6,
+        reviewCount: 0,
         inStock: true,
+        stockQuantity: 0,
         description: "Elegant solitaire hoop earrings"
       }
     ],
@@ -366,61 +389,76 @@ export default function ProductPage({
       {
         id: "b3-1",
         name: "Gold Plated Necklace Set",
+        slug: generateSlug("Gold Plated Necklace Set"),
         price: 1001,
         originalPrice: 1500,
         image: "/img/product/6.jpg",
         images: ["/img/product/6.jpg"],
         category: "women",
         rating: 4.4,
+        reviewCount: 0,
         inStock: true,
+        stockQuantity: 0,
         description: "Complete necklace set"
       },
       {
         id: "b3-2",
         name: "Rose Gold Ring Collection",
+        slug: generateSlug("Rose Gold Ring Collection"),
         price: 1001,
         originalPrice: 1800,
         image: "/img/product/7.jpg",
         images: ["/img/product/7.jpg"],
         category: "women",
         rating: 4.5,
+        reviewCount: 0,
         inStock: true,
+        stockQuantity: 0,
         description: "Beautiful rose gold rings"
       },
       {
         id: "b3-3",
         name: "Silver Chain Bracelet",
+        slug: generateSlug("Silver Chain Bracelet"),
         price: 1001,
         originalPrice: 1600,
         image: "/img/product/8.jpg",
         images: ["/img/product/8.jpg"],
         category: "women",
         rating: 4.3,
+        reviewCount: 0,
         inStock: true,
+        stockQuantity: 0,
         description: "Elegant silver chain bracelet"
       },
       {
         id: "b3-4",
         name: "Pearl Drop Earrings",
+        slug: generateSlug("Pearl Drop Earrings"),
         price: 1001,
         originalPrice: 1700,
         image: "/img/product/9.jpg",
         images: ["/img/product/9.jpg"],
         category: "women",
         rating: 4.6,
+        reviewCount: 0,
         inStock: true,
+        stockQuantity: 0,
         description: "Classic pearl drop earrings"
       },
       {
         id: "b3-5",
         name: "Diamond Stud Earrings",
+        slug: generateSlug("Diamond Stud Earrings"),
         price: 1001,
         originalPrice: 2000,
         image: "/img/product/10.jpg",
         images: ["/img/product/10.jpg"],
         category: "women",
         rating: 4.7,
+        reviewCount: 0,
         inStock: true,
+        stockQuantity: 0,
         description: "Premium diamond studs"
       }
     ],
@@ -428,61 +466,76 @@ export default function ProductPage({
       {
         id: "b4-1",
         name: "Premium Gold Set",
+        slug: generateSlug("Premium Gold Set"),
         price: 999,
         originalPrice: 1500,
         image: "/img/product/11.jpg",
         images: ["/img/product/11.jpg"],
         category: "women",
         rating: 4.8,
+        reviewCount: 0,
         inStock: true,
+        stockQuantity: 0,
         description: "Complete premium gold set"
       },
       {
         id: "b4-2",
         name: "Designer Bangle Set",
+        slug: generateSlug("Designer Bangle Set"),
         price: 999,
         originalPrice: 1600,
         image: "/img/product/12.jpg",
         images: ["/img/product/12.jpg"],
         category: "women",
         rating: 4.5,
+        reviewCount: 0,
         inStock: true,
+        stockQuantity: 0,
         description: "Stylish bangle collection"
       },
       {
         id: "b4-3",
         name: "Luxury Necklace",
+        slug: generateSlug("Luxury Necklace"),
         price: 999,
         originalPrice: 1800,
         image: "/img/product/13.jpg",
         images: ["/img/product/13.jpg"],
         category: "women",
         rating: 4.6,
+        reviewCount: 0,
         inStock: true,
+        stockQuantity: 0,
         description: "Luxurious necklace design"
       },
       {
         id: "b4-4",
         name: "Elegant Earring Set",
+        slug: generateSlug("Elegant Earring Set"),
         price: 999,
         originalPrice: 1700,
         image: "/img/product/14.jpg",
         images: ["/img/product/14.jpg"],
         category: "women",
         rating: 4.4,
+        reviewCount: 0,
         inStock: true,
+        stockQuantity: 0,
         description: "Beautiful earring collection"
       },
       {
         id: "b4-5",
         name: "Classic Ring Set",
+        slug: generateSlug("Classic Ring Set"),
         price: 999,
         originalPrice: 1900,
         image: "/img/product/15.jpg",
         images: ["/img/product/15.jpg"],
         category: "women",
         rating: 4.7,
+        reviewCount: 0,
         inStock: true,
+        stockQuantity: 0,
         description: "Timeless ring collection"
       }
     ]
@@ -520,34 +573,34 @@ export default function ProductPage({
               <div className="absolute top-4 left-4 z-10">
                 <div className="bg-white text-black text-xs font-bold px-3 py-1.5 rounded shadow-lg">
                   Buy 1 Get 1
-                </div>
+            </div>
               </div>
             </div>
 
             {/* Thumbnail Gallery */}
             {images.length > 1 && (
               <div className="grid grid-cols-4 gap-2">
-                {images.map((img, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setSelectedImage(index)}
-                    className={cn(
+              {images.map((img, index) => (
+                <button
+                  key={index}
+                  onClick={() => setSelectedImage(index)}
+                  className={cn(
                       "aspect-square relative overflow-hidden rounded border-2 transition-all",
-                      selectedImage === index
-                        ? "border-primary"
+                    selectedImage === index
+                      ? "border-primary"
                         : "border-transparent hover:border-muted-foreground/50"
-                    )}
-                  >
-                    <Image
-                      src={img}
-                      alt={`${product.name} ${index + 1}`}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 1024px) 25vw, 12.5vw"
-                    />
-                  </button>
-                ))}
-              </div>
+                  )}
+                >
+                  <Image
+                    src={img}
+                    alt={`${product.name} ${index + 1}`}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 1024px) 25vw, 12.5vw"
+                  />
+                </button>
+              ))}
+            </div>
             )}
           </div>
 
@@ -559,22 +612,22 @@ export default function ProductPage({
                 {product.name}
               </h1>
               <div className="flex items-center gap-2 flex-shrink-0">
-                <div className="flex items-center">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className={cn(
+              <div className="flex items-center">
+                {[...Array(5)].map((_, i) => (
+                  <Star
+                    key={i}
+                    className={cn(
                         "h-3 w-3 sm:h-4 sm:w-4",
-                        i < Math.floor(product.rating || 0)
-                          ? "fill-primary text-primary"
+                      i < Math.floor(product.rating || 0)
+                        ? "fill-primary text-primary"
                           : "text-muted fill-muted"
-                      )}
-                    />
-                  ))}
-                </div>
+                    )}
+                  />
+                ))}
+              </div>
                 <span className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
-                  ({(product as any).reviewCount || 235})
-                </span>
+                  ({product.reviewCount || 0})
+              </span>
               </div>
             </div>
 
@@ -583,15 +636,15 @@ export default function ProductPage({
               <div className="flex items-baseline gap-2 sm:gap-3 flex-wrap">
                 <span className="text-2xl sm:text-3xl font-bold">₹{product.price.toLocaleString()}</span>
                 {product.originalPrice && product.originalPrice > product.price && (
-                  <>
+                <>
                     <span className="text-lg sm:text-xl text-muted-foreground line-through">
                       ₹{product.originalPrice.toLocaleString()}
-                    </span>
+                  </span>
                     <span className="text-xs sm:text-sm bg-black text-white dark:bg-black dark:text-white px-2 sm:px-2.5 py-0.5 sm:py-1 font-semibold">
                       SAVE {calculateDiscount()}%
-                    </span>
-                  </>
-                )}
+                  </span>
+                </>
+              )}
               </div>
               <div className="text-xs sm:text-sm text-muted-foreground">
                 Inclusive of all taxes
@@ -600,7 +653,7 @@ export default function ProductPage({
 
             {/* SKU */}
             <div className="text-sm text-muted-foreground">
-              SKU: {(product as any).slug ? (product as any).slug.toUpperCase() : product.id.slice(0, 8).toUpperCase()}
+              SKU: {product.slug ? product.slug.toUpperCase() : product.id.slice(0, 8).toUpperCase()}
             </div>
 
             {/* Promotional Offers */}
@@ -624,7 +677,7 @@ export default function ProductPage({
               <Check className="h-5 w-5 text-green-600 dark:text-green-500" />
               <span className="text-sm font-medium text-green-600 dark:text-green-500">
                 In stock - ready to ship
-              </span>
+                  </span>
             </div>
 
             {/* Size Selection */}
@@ -675,10 +728,10 @@ export default function ProductPage({
                   variant="outline"
                   className="flex-1 h-11 sm:h-12 border-2 text-sm sm:text-base"
                   onClick={handleBuyNow}
-                  disabled={!product.inStock}
-                >
+                disabled={!product.inStock}
+              >
                   BUY IT NOW
-                </Button>
+              </Button>
                 <Button
                   size="lg"
                   variant="outline"
@@ -686,13 +739,13 @@ export default function ProductPage({
                   onClick={handleAddToWishlist}
                   aria-label="Add to wishlist"
                 >
-                  <Heart
-                    className={cn(
+                <Heart
+                  className={cn(
                       "h-4 w-4 sm:h-5 sm:w-5",
-                      isInWishlist && "fill-primary text-primary"
-                    )}
-                  />
-                </Button>
+                    isInWishlist && "fill-primary text-primary"
+                  )}
+                />
+              </Button>
               </div>
             </div>
 
@@ -710,14 +763,14 @@ export default function ProductPage({
                       "h-4 w-4 transition-transform",
                       expandedSections.description && "rotate-45"
                     )} />
-                  </div>
+          </div>
                 </button>
                 {expandedSections.description && (
                   <div className="pb-4 px-4 text-sm text-muted-foreground leading-relaxed">
                     {product.description || "This exquisite jewelry piece features fine craftsmanship and premium materials, designed to be treasured for generations."}
                   </div>
                 )}
-              </div>
+        </div>
 
               {/* Specification Section */}
               <div className="border-b border-border bg-muted/30">
@@ -807,7 +860,7 @@ export default function ProductPage({
                       <li>10 Days Exchange Policy</li>
                       <li>Items must be in original condition with tags attached</li>
                       <li>Free return shipping for defective items</li>
-                    </ul>
+                </ul>
                   </div>
                 )}
               </div>
@@ -823,7 +876,7 @@ export default function ProductPage({
               <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
                 <Truck className="h-5 w-5 sm:h-6 sm:w-6 text-amber-700 dark:text-amber-400" />
               </div>
-              <div>
+                  <div>
                 <h3 className="font-semibold text-sm sm:text-base text-foreground">Free Shipping</h3>
                 <p className="text-xs sm:text-sm text-muted-foreground">On orders above ₹500</p>
               </div>
@@ -836,8 +889,8 @@ export default function ProductPage({
                   <div className="h-6 w-6 rounded-full border-2 border-amber-700 dark:border-amber-400"></div>
                   <Sparkles className="h-3 w-3 text-amber-700 dark:text-amber-400 absolute -top-1 -right-1" />
                 </div>
-              </div>
-              <div>
+                  </div>
+                  <div>
                 <h3 className="font-semibold text-foreground">Skin Safe Jewellery</h3>
                 <p className="text-sm text-muted-foreground">Hypoallergenic materials</p>
               </div>
@@ -852,11 +905,11 @@ export default function ProductPage({
                   <div className="h-2 w-4 bg-amber-700 dark:bg-amber-400 rounded"></div>
                   <Sparkles className="h-2 w-2 text-amber-700 dark:text-amber-400" />
                 </div>
-              </div>
-              <div>
+                  </div>
+                  <div>
                 <h3 className="font-semibold text-foreground">18k Gold Tone Plated</h3>
                 <p className="text-sm text-muted-foreground">Premium quality finish</p>
-              </div>
+                  </div>
             </div>
           </div>
         </div>
@@ -1088,13 +1141,13 @@ export default function ProductPage({
         {relatedProducts.length > 0 && (
           <section className="mb-12">
             <div className="flex items-center justify-between mb-8">
-              <div>
+                  <div>
                 <h2 className="text-2xl md:text-3xl font-bold mb-2">Similar Products</h2>
                 <p className="text-muted-foreground">
                   Discover more exquisite pieces from our collection
                 </p>
-              </div>
-            </div>
+                  </div>
+                </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {relatedProducts.slice(0, 4).map((relatedProduct) => (
                 <ProductCard key={relatedProduct.id} product={relatedProduct} />
@@ -1169,10 +1222,10 @@ export default function ProductPage({
                     })}
                   </div>
                 </div>
-              </Card>
+            </Card>
 
               {/* Reviews List */}
-              <div className="space-y-4">
+                  <div className="space-y-4">
                 {reviews.map((review: any) => (
                   <Card key={review.id} className="p-6">
                     <div className="flex items-start justify-between gap-4 mb-4">
@@ -1194,18 +1247,18 @@ export default function ProductPage({
                             )}
                           </div>
                           <div className="flex items-center gap-1 mt-1">
-                            {[...Array(5)].map((_, i) => (
-                              <Star
-                                key={i}
-                                className={cn(
-                                  "h-4 w-4",
+                              {[...Array(5)].map((_, i) => (
+                                <Star
+                                  key={i}
+                                  className={cn(
+                                    "h-4 w-4",
                                   i < review.rating
-                                    ? "fill-primary text-primary"
+                                      ? "fill-primary text-primary"
                                     : "text-muted fill-muted"
-                                )}
-                              />
-                            ))}
-                          </div>
+                                  )}
+                                />
+                              ))}
+                            </div>
                         </div>
                       </div>
                       <span className="text-sm text-muted-foreground whitespace-nowrap">
@@ -1214,24 +1267,24 @@ export default function ProductPage({
                           month: "short",
                           day: "numeric",
                         })}
-                      </span>
-                    </div>
-                    {review.comment && (
+                              </span>
+                          </div>
+                          {review.comment && (
                       <p className="text-sm text-foreground leading-relaxed pl-15">
-                        {review.comment}
-                      </p>
-                    )}
+                              {review.comment}
+                            </p>
+                          )}
                   </Card>
                 ))}
-              </div>
-            </div>
-          ) : (
+                        </div>
+                  </div>
+                ) : (
             <Card className="p-12 text-center">
               <Star className="h-12 w-12 text-muted mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">No reviews yet</h3>
               <p className="text-muted-foreground mb-4">
                 Be the first to review this product and help others make their decision.
-              </p>
+                  </p>
               <Button variant="outline" onClick={() => router.push("/login")}>
                 Write a Review
               </Button>
@@ -1277,8 +1330,8 @@ export default function ProductPage({
               </div>
             </div>
           </div>
-        </div>
-      </section>
+            </div>
+          </section>
 
       {/* Fullscreen Image Modal */}
       <AnimatePresence>

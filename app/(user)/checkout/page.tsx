@@ -239,17 +239,17 @@ export default function CheckoutPage() {
 
   if (items.length === 0) {
     return (
-      <main className="flex-grow container mx-auto px-4 py-8 text-center">
-        <p className="text-xl mb-4">Your cart is empty</p>
-        <Button asChild>
-          <a href="/shop">Continue Shopping</a>
-        </Button>
-      </main>
+        <main className="flex-grow container mx-auto px-4 py-8 text-center">
+          <p className="text-xl mb-4">Your cart is empty</p>
+          <Button asChild>
+            <a href="/shop">Continue Shopping</a>
+          </Button>
+        </main>
     );
   }
 
   return (
-    <main className="flex-grow container mx-auto px-4 py-8">
+      <main className="flex-grow container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-8">Checkout</h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

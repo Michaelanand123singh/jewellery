@@ -71,7 +71,7 @@ function SearchContent() {
   };
 
   return (
-    <main className="flex-grow container mx-auto px-4 py-8">
+      <main className="flex-grow container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-4">Search Products</h1>
           <form onSubmit={handleSearch} className="relative max-w-2xl">
@@ -159,12 +159,12 @@ export default function SearchPage() {
   return (
     <Suspense
       fallback={
-        <main className="flex-grow container mx-auto px-4 py-8">
-          <div className="text-center py-16">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            <p className="mt-4 text-muted-foreground">Loading...</p>
-          </div>
-        </main>
+          <main className="flex-grow container mx-auto px-4 py-8">
+            <div className="text-center py-16">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <p className="mt-4 text-muted-foreground">Loading...</p>
+            </div>
+          </main>
       }
     >
       <SearchContent />

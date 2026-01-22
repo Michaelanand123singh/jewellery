@@ -3,16 +3,16 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
-import { use } from "react";
+import { use, useEffect, useState, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Calendar, Clock, ArrowLeft, Share2, Tag, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { getBlogPostBySlug, getAllBlogPosts, type BlogPost } from "@/lib/blog-data";
+import { apiClient } from "@/lib/api-client";
+import { type BlogPost } from "@/lib/blog-data";
 import { cn } from "@/lib/utils";
 import TableOfContents from "@/components/blog/TableOfContents";
-import { useEffect, useRef } from "react";
 
 interface BlogPostPageProps {
   params: Promise<{ slug: string }>;
@@ -21,19 +21,147 @@ interface BlogPostPageProps {
 export default function BlogPostPage({ params }: BlogPostPageProps) {
   const { slug } = use(params);
   const router = useRouter();
-  const post = getBlogPostBySlug(slug);
-  const allPosts = getAllBlogPosts();
+  const [post, setPost] = useState<BlogPost | null>(null);
+  const [allPosts, setAllPosts] = useState<BlogPost[]>([]);
+  const [loading, setLoading] = useState(true);
   const contentRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    const fetchBlog = async () => {
+      try {
+        setLoading(true);
+        interface BlogResponse {
+          id: string;
+          title: string;
+          slug: string;
+          excerpt: string;
+          content?: string;
+          image: string;
+          category: string;
+          author?: string;
+          readTime?: string;
+          tags: string[];
+          published: boolean;
+          publishedAt?: string;
+          createdAt: string;
+          faqs?: Array<{ question: string; answer: string }>;
+        }
+
+        const response = await apiClient.get<BlogResponse>(`/blogs/slug/${slug}`);
+        if (response.success && response.data) {
+          const blog = response.data;
+          // Convert string ID to number for compatibility
+          const numericId = typeof blog.id === 'string' 
+            ? parseInt(blog.id.replace(/\D/g, '').slice(0, 10)) || Math.abs(blog.id.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0))
+            : blog.id;
+
+          const transformedPost: BlogPost = {
+            id: numericId,
+            title: blog.title,
+            excerpt: blog.excerpt,
+            image: blog.image,
+            date: blog.publishedAt 
+              ? new Date(blog.publishedAt).toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })
+              : new Date(blog.createdAt).toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                }),
+            category: blog.category,
+            slug: blog.slug,
+            content: blog.content,
+            author: blog.author,
+            readTime: blog.readTime,
+            tags: blog.tags || [],
+            faqs: blog.faqs?.map((faq: any) => ({
+              question: faq.question,
+              answer: faq.answer,
+            })) || [],
+          };
+          setPost(transformedPost);
+
+          // Fetch all posts for related posts
+          const allResponse = await apiClient.get<BlogPost[]>("/blogs", { published: "true", limit: 100 });
+          if (allResponse.success && allResponse.data) {
+            const transformedPosts = allResponse.data.map((blog: any) => {
+              // Convert string ID to number for compatibility
+              const numericId = typeof blog.id === 'string' 
+                ? parseInt(blog.id.replace(/\D/g, '').slice(0, 10)) || Math.abs(blog.id.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0))
+                : blog.id;
+
+              return {
+                id: numericId,
+                title: blog.title,
+                excerpt: blog.excerpt,
+                image: blog.image,
+                date: blog.publishedAt 
+                  ? new Date(blog.publishedAt).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })
+                  : new Date(blog.createdAt).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    }),
+                category: blog.category,
+                slug: blog.slug,
+                content: blog.content,
+                author: blog.author,
+                readTime: blog.readTime,
+                tags: blog.tags || [],
+                faqs: blog.faqs?.map((faq: any) => ({
+                  question: faq.question,
+                  answer: faq.answer,
+                })) || [],
+              };
+            });
+            setAllPosts(transformedPosts);
+          }
+        } else {
+          router.push("/blog");
+        }
+      } catch (error) {
+        console.error("Failed to fetch blog:", error);
+        router.push("/blog");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBlog();
+  }, [slug, router]);
+
+  if (loading) {
+    return (
+      <main className="flex-grow bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 bg-muted w-3/4 rounded"></div>
+            <div className="h-4 bg-muted w-1/2 rounded"></div>
+            <div className="h-64 bg-muted rounded"></div>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   if (!post) {
-    router.push("/blog");
     return null;
   }
 
   // Get related posts (same category, excluding current post)
-  const relatedPosts = allPosts
-    .filter((p) => p.category === post.category && p.id !== post.id)
-    .slice(0, 3);
+  const relatedPosts = useMemo(() => {
+    if (!post || allPosts.length === 0) return [];
+    return allPosts
+      .filter((p) => p.category === post.category && p.id !== post.id)
+      .slice(0, 3);
+  }, [post, allPosts]);
 
   // Add IDs to headings in content after render
   useEffect(() => {
