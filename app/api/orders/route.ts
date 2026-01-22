@@ -3,7 +3,7 @@ import { getAuthUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 
-// GET /api/orders - Get user's orders
+// GET /api/orders - Get user's orders (or all orders for admin)
 export async function GET(request: NextRequest) {
   try {
     const user = await getAuthUser(request);
@@ -15,9 +15,19 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Admin can see all orders, regular users see only their orders
+    const whereClause = user.role === 'ADMIN' ? {} : { userId: user.id };
+
     const orders = await prisma.order.findMany({
-      where: { userId: user.id },
+      where: whereClause,
       include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
         address: true,
         orderItems: {
           include: {

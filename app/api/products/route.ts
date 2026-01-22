@@ -95,6 +95,7 @@ export async function GET(request: NextRequest) {
           images: true,
           category: true,
           inStock: true,
+          stockQuantity: true,
           rating: true,
           reviewCount: true,
         },
@@ -113,8 +114,10 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Add cache headers for GET requests (60 seconds cache, allow stale for 120 seconds)
-    response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=120');
+    // No cache for product listings to ensure admin updates are visible immediately
+    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
     
     return response;
   } catch (error) {

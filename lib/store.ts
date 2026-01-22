@@ -6,15 +6,19 @@ import { apiClient, ApiError } from './api-client';
 export interface Product {
   id: string;
   name: string;
+  slug: string;
   price: number;
-  originalPrice?: number;
+  originalPrice?: number | null;
   image: string;
   images?: string[];
-  description?: string;
+  description?: string | null;
   category: string;
-  rating?: number;
+  rating?: number | null;
+  reviewCount?: number;
   inStock?: boolean;
   stockQuantity?: number | null; // Available stock quantity
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
 }
 
 export interface CartItem extends Product {

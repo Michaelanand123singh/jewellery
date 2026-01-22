@@ -3,13 +3,84 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { Calendar, ArrowRight } from "lucide-react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { getAllBlogPosts } from "@/lib/blog-data";
-
-const blogPosts = getAllBlogPosts().slice(0, 3);
+import { apiClient } from "@/lib/api-client";
+import { type BlogPost } from "@/lib/blog-data";
 
 export default function BlogSection() {
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchBlogs = async () => {
+      try {
+        const response = await apiClient.get<BlogPost[]>("/blogs", { published: "true", limit: 3 });
+        if (response.success && response.data) {
+          const transformedPosts = response.data.map((blog: any) => {
+            // Convert string ID to number for compatibility
+            const numericId = typeof blog.id === 'string' 
+              ? parseInt(blog.id.replace(/\D/g, '').slice(0, 10)) || Math.abs(blog.id.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0))
+              : blog.id;
+
+            return {
+              id: numericId,
+              title: blog.title,
+              excerpt: blog.excerpt,
+              image: blog.image,
+              date: blog.publishedAt 
+                ? new Date(blog.publishedAt).toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })
+                : new Date(blog.createdAt).toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  }),
+              category: blog.category,
+              slug: blog.slug,
+              content: blog.content,
+              author: blog.author,
+              readTime: blog.readTime,
+              tags: blog.tags || [],
+              faqs: blog.faqs?.map((faq: any) => ({
+                question: faq.question,
+                answer: faq.answer,
+              })) || [],
+            };
+          });
+          setBlogPosts(transformedPosts);
+        }
+      } catch (error) {
+        console.error("Failed to fetch blogs:", error);
+        // Fallback to static data
+        const { getAllBlogPosts } = await import("@/lib/blog-data");
+        setBlogPosts(getAllBlogPosts().slice(0, 3));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBlogs();
+  }, []);
+
+  if (loading) {
+    return (
+      <section className="py-12 sm:py-16 md:py-20 bg-background">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+            {[...Array(3)].map((_, index) => (
+              <div key={index} className="bg-muted animate-pulse rounded-lg aspect-video" />
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="py-12 sm:py-16 md:py-20 bg-background">
       <div className="container mx-auto px-4">

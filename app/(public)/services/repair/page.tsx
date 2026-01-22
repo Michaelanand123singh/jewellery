@@ -41,7 +41,7 @@ export default function RepairServicePage() {
   };
 
   return (
-    <main className="flex-grow">
+      <main className="flex-grow">
         {/* Page Title */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}

@@ -60,7 +60,8 @@ export const apiClient = {
       headers: {
         'Content-Type': 'application/json',
       },
-      cache: 'default',
+      // Use no-store for product endpoints to ensure fresh data
+      cache: endpoint.includes('/products') ? 'no-store' : 'default',
     });
 
     return handleResponse<T>(response);

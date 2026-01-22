@@ -36,6 +36,24 @@ export default function ProductCard({ product }: ProductCardProps) {
     }
   };
 
+  // Extract brand from product name (first word before space) or use category
+  const brand = product.name.split(' ')[0] || product.category;
+  const productTitle = product.name.split(' ').slice(1).join(' ') || product.name;
+  
+  // Calculate discount percentage
+  const discountPercentage = product.originalPrice
+    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+    : 0;
+  
+  // Review count (use reviewCount if available, otherwise default to 0)
+  const reviewCount = product.reviewCount || 0;
+  
+  // Check if stock is low (for "Only Few Left!" badge)
+  const isLowStock = product.stockQuantity !== undefined && product.stockQuantity !== null && product.stockQuantity > 0 && product.stockQuantity < 10;
+  
+  // Random AD label (can be made conditional based on product properties)
+  const showAdLabel = Math.random() > 0.7;
+
   return (
     <motion.div
       whileHover={{ y: -3 }}
@@ -49,20 +67,25 @@ export default function ProductCard({ product }: ProductCardProps) {
               alt={product.name}
               fill
               className="object-cover transition-transform duration-300 group-hover:scale-[1.06]"
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 20vw"
             />
           </Link>
-          {product.originalPrice && (
+          {showAdLabel && (
+            <div className="absolute top-1.5 right-1.5 bg-black/70 text-white text-[9px] font-bold px-1.5 py-0.5 rounded z-10">
+              AD
+            </div>
+          )}
+          {product.originalPrice && discountPercentage > 0 && (
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              className="absolute top-2 left-2 bg-destructive text-destructive-foreground text-[10px] font-bold px-2 py-1 rounded z-10"
+              className="absolute top-1.5 left-1.5 bg-destructive text-destructive-foreground text-[9px] font-bold px-1.5 py-0.5 rounded z-10"
             >
-              SALE
+              {discountPercentage}% OFF
             </motion.div>
           )}
           <motion.div
-            className="absolute top-2 right-2 z-10"
+            className="absolute top-1.5 right-1.5 z-10"
             initial={{ opacity: 0, scale: 0.8 }}
             whileHover={{ opacity: 1, scale: 1 }}
             animate={wishlistClicked ? { scale: [1, 1.3, 1] } : {}}
@@ -70,65 +93,82 @@ export default function ProductCard({ product }: ProductCardProps) {
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 bg-background/90 backdrop-blur-sm hover:bg-background"
+              className="h-7 w-7 bg-background/90 backdrop-blur-sm hover:bg-background"
               onClick={handleWishlistClick}
             >
               <Heart
                 className={cn(
-                  "h-4 w-4 transition-all",
+                  "h-3.5 w-3.5 transition-all",
                   isInWishlist && "fill-primary text-primary"
                 )}
               />
             </Button>
           </motion.div>
           <motion.div
-            className="absolute bottom-2 left-2 right-2 z-10"
+            className="absolute bottom-1.5 left-1.5 right-1.5 z-10"
             initial={{ opacity: 0, y: 10 }}
             whileHover={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.2 }}
           >
             <Button
-              className="w-full h-9 bg-primary text-primary-foreground hover:bg-primary/90 shadow"
+              className="w-full h-8 text-xs bg-primary text-primary-foreground hover:bg-primary/90 shadow"
               onClick={handleAddToCart}
               disabled={!product.inStock}
             >
-              <ShoppingCart className="h-4 w-4 mr-2" />
+              <ShoppingCart className="h-3 w-3 mr-1.5" />
               Add to Bag
             </Button>
           </motion.div>
         </div>
-        <CardContent className="p-3">
+        <CardContent className="p-2.5">
+          {/* Brand */}
+          <div className="text-[10px] text-muted-foreground mb-0.5 font-medium uppercase">
+            {brand}
+          </div>
+          {/* Product Title */}
           <Link href={`/products/${product.id}`}>
-            <h3 className="text-sm font-medium mb-2 hover:text-primary transition-colors line-clamp-2">
-              {product.name}
+            <h3 className="text-xs font-medium mb-1.5 hover:text-primary transition-colors line-clamp-2 leading-tight">
+              {productTitle}
             </h3>
           </Link>
+          {/* Rating */}
           {product.rating && (
-            <div className="flex items-center gap-1 mb-2">
-              {[...Array(5)].map((_, i) => (
-                <Star
-                  key={i}
-                  className={cn(
-                    "h-3 w-3",
-                    i < Math.floor(product.rating!) ? "fill-primary text-primary" : "text-muted"
-                  )}
-                />
-              ))}
-              <span className="text-xs text-muted-foreground ml-1">
-                ({product.rating})
+            <div className="flex items-center gap-0.5 mb-1.5">
+              <div className="flex items-center">
+                {[...Array(5)].map((_, i) => (
+                  <Star
+                    key={i}
+                    className={cn(
+                      "h-2.5 w-2.5",
+                      i < Math.floor(product.rating!) ? "fill-primary text-primary" : "text-muted-foreground"
+                    )}
+                  />
+                ))}
+              </div>
+              <span className="text-[10px] text-muted-foreground ml-0.5">
+                {product.rating.toFixed(1)} ({reviewCount})
               </span>
             </div>
           )}
         </CardContent>
-        <CardFooter className="p-3 pt-0 flex justify-between items-center">
-          <div className="flex items-baseline gap-2">
-            <span className="text-base font-semibold">₹{product.price}</span>
+        <CardFooter className="p-2.5 pt-0 flex flex-col items-start gap-1.5">
+          {/* Price */}
+          <div className="flex items-baseline gap-1.5 w-full">
+            <span className="text-sm font-semibold">₹{product.price.toLocaleString()}</span>
             {product.originalPrice && (
-              <span className="text-xs text-muted-foreground line-through">
-                ₹{product.originalPrice}
-              </span>
+              <>
+                <span className="text-[10px] text-muted-foreground line-through">
+                  ₹{product.originalPrice.toLocaleString()}
+                </span>
+              </>
             )}
           </div>
+          {/* Low Stock Badge */}
+          {isLowStock && (
+            <div className="text-[10px] text-destructive font-medium">
+              Only Few Left!
+            </div>
+          )}
         </CardFooter>
       </Card>
     </motion.div>
