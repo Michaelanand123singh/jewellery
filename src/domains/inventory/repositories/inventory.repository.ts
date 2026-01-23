@@ -31,16 +31,16 @@ export class InventoryRepository {
     let newStock = previousStock;
     let quantity = data.quantity;
 
-    if (data.type === $Enums.StockMovementType.IN || data.type === $Enums.StockMovementType.RETURN) {
+    if (data.type === 'IN' || data.type === 'RETURN') {
       newStock = previousStock + quantity;
-    } else if (data.type === $Enums.StockMovementType.OUT || data.type === $Enums.StockMovementType.ADJUSTMENT) {
+    } else if (data.type === 'OUT' || data.type === 'ADJUSTMENT') {
       // For OUT and ADJUSTMENT, quantity should be positive but will be stored as negative
       newStock = previousStock - quantity;
       quantity = -quantity; // Store as negative for OUT movements
     }
 
     // Ensure stock doesn't go negative (unless it's an adjustment)
-    if (newStock < 0 && data.type !== $Enums.StockMovementType.ADJUSTMENT) {
+    if (newStock < 0 && data.type !== 'ADJUSTMENT') {
       throw new Error('Insufficient stock');
     }
 

@@ -11,8 +11,8 @@ import {
   PaginationParams,
   InventoryStats,
   ProductInventory,
+  StockMovementType,
 } from '../types/inventory.types';
-import { $Enums } from '@prisma/client';
 import { NotFoundError } from '@/src/shared/utils/errors';
 
 export class InventoryService {
@@ -36,11 +36,11 @@ export class InventoryService {
     // For adjustments, quantity can be positive (add) or negative (remove)
     // But we need to ensure it's positive for the movement type
     const absQuantity = Math.abs(quantity);
-    const movementType = quantity > 0 
-      ? $Enums.StockMovementType.IN 
+    const movementType: StockMovementType = quantity > 0 
+      ? 'IN' 
       : type === 'ADJUSTMENT' 
-        ? $Enums.StockMovementType.ADJUSTMENT 
-        : $Enums.StockMovementType.OUT;
+        ? 'ADJUSTMENT' 
+        : 'OUT';
 
     return this.inventoryRepository.createStockMovement({
       productId,

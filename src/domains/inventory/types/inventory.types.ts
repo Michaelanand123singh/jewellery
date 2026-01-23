@@ -2,10 +2,8 @@
  * Inventory domain types
  */
 
-import { $Enums } from '@prisma/client';
-
-// Use Prisma's generated enum type
-export type StockMovementType = $Enums.StockMovementType;
+// Define StockMovementType as string literal union to avoid Prisma client dependency issues
+export type StockMovementType = 'IN' | 'OUT' | 'ADJUSTMENT' | 'RETURN' | 'TRANSFER';
 
 export interface StockMovement {
   id: string;

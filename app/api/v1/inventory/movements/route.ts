@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { InventoryService } from '@/src/domains/inventory/services/inventory.service';
 import { createStockMovementSchema, adjustStockSchema } from '@/src/domains/inventory/validators/inventory.validator';
-import { $Enums } from '@prisma/client';
+import { StockMovementType } from '@/src/domains/inventory/types/inventory.types';
 import { requireAdminRole } from '@/src/shared/middleware/auth.middleware';
 import { handleApiError } from '@/src/shared/middleware/error.middleware';
 import { logger } from '@/src/shared/utils/logger';
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
       
       const movement = await inventoryService.createStockMovement({
         ...validatedData,
-        type: validatedData.type as $Enums.StockMovementType,
+        type: validatedData.type as StockMovementType,
         createdBy: user.id,
       });
 
