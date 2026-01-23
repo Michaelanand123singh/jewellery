@@ -35,7 +35,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: 'Login successful',
-      data: result.user,
+      data: {
+        ...result.user,
+        token: result.token, // Also return token in response for clients that don't use cookies
+      },
     });
   } catch (error) {
     return handleApiError(error);

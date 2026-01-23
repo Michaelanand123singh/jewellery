@@ -42,7 +42,13 @@ export async function verifyToken(token: string): Promise<JWTPayload | null> {
 
 export async function getAuthUser(request: NextRequest) {
   try {
-    const token = request.cookies.get('auth-token')?.value;
+    // Try to get token from Authorization header first (for API clients)
+    let token = request.headers.get('authorization')?.replace('Bearer ', '');
+    
+    // Fall back to cookie if no Authorization header
+    if (!token) {
+      token = request.cookies.get('auth-token')?.value;
+    }
     
     if (!token) {
       return null;
