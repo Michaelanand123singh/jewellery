@@ -22,6 +22,21 @@ const env = {
   NEXT_TELEMETRY_DISABLED: '1',
 };
 
+// Generate Prisma Client before building
+console.log('📦 Generating Prisma Client...');
+try {
+  execSync('npx prisma generate', {
+    cwd: path.resolve(__dirname, '..'),
+    stdio: 'inherit',
+    env: env,
+    shell: true,
+  });
+  console.log('✅ Prisma Client generated successfully!\n');
+} catch (error) {
+  console.error('⚠️  Prisma Client generation failed, but continuing build...\n');
+  // Don't exit - let the build continue and fail if Prisma is actually needed
+}
+
 console.log('🔨 Building...');
 
 try {
