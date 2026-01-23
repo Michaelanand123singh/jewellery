@@ -75,6 +75,7 @@ model Product {
   orderItems    OrderItem[]
   wishlistItems WishlistItem[]
   reviews       Review[]
+  stockMovements StockMovement[]
   
   @@map("products")
 }
@@ -219,4 +220,64 @@ enum PaymentStatus {
   PAID
   FAILED
   REFUNDED
+}
+
+model StockMovement {
+  id            String          @id @default(cuid())
+  productId     String
+  product       Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  type          StockMovementType
+  quantity      Int             // Positive for additions, negative for deductions
+  previousStock Int             // Stock quantity before this movement
+  newStock      Int             // Stock quantity after this movement
+  reason        String?         @db.Text
+  referenceId   String?         // Reference to order, adjustment, etc.
+  referenceType String?         // 'ORDER', 'ADJUSTMENT', 'RETURN', etc.
+  
+  createdBy     String?         // User ID who made the change
+  createdAt     DateTime        @default(now())
+  
+  @@index([productId])
+  @@index([createdAt])
+  @@index([type])
+  @@map("stock_movements")
+}
+
+enum StockMovementType {
+  IN          // Stock added
+  OUT         // Stock removed (sale, damage, etc.)
+  ADJUSTMENT  // Manual adjustment
+  RETURN      // Return from customer
+  TRANSFER    // Transfer between locations (future use)
+}
+
+model Setting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String   @db.Text
+  type        String   @default("string") // 'string', 'number', 'boolean', 'json'
+  group       String   // 'general', 'product', 'shipping', 'payment', 'email', 'seo', 'tax'
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("settings")
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  description String?   @db.Text
+  image       String?
+  parentId    String?
+  parent      Category? @relation("CategoryParent", fields: [parentId], references: [id], onDelete: Cascade)
+  children    Category[] @relation("CategoryParent")
+  order       Int       @default(0) // For sorting
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@map("categories")
 }

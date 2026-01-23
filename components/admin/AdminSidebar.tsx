@@ -10,7 +10,8 @@ import {
     Settings,
     LogOut,
     Menu,
-    FileText
+    FileText,
+    Warehouse
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,12 @@ export function AdminSidebar({ className }: SidebarProps) {
             label: "Blogs",
             icon: FileText,
             active: pathname === "/admin/blogs",
+        },
+        {
+            href: "/admin/inventory",
+            label: "Inventory",
+            icon: Warehouse,
+            active: pathname === "/admin/inventory",
         },
         {
             href: "/admin/orders",
