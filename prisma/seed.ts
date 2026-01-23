@@ -1,5 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { writeFileSync } from 'fs';
+import { join } from 'path';
 
 const prisma = new PrismaClient();
 
@@ -15,12 +17,16 @@ function generateRandomPassword(length: number = 16): string {
 async function main() {
   console.log('🌱 Starting database seed...');
 
+  const credentials: { email: string; password: string; role: string }[] = [];
+
   // Create admin user
   const adminPassword = process.env.ADMIN_PASSWORD || generateRandomPassword(20);
   const hashedPassword = await bcrypt.hash(adminPassword, 10);
   const admin = await prisma.user.upsert({
     where: { email: 'admin@jewellery.com' },
-    update: {},
+    update: {
+      password: hashedPassword, // Update password if user exists
+    },
     create: {
       email: 'admin@jewellery.com',
       name: 'Admin User',
@@ -31,32 +37,38 @@ async function main() {
   });
 
   console.log('✅ Admin user created:', admin.email);
-  if (!process.env.ADMIN_PASSWORD) {
-    console.log('⚠️  IMPORTANT: Admin password generated, save this:', adminPassword);
-    console.log('   Password:', adminPassword);
-  }
+  console.log('⚠️  IMPORTANT: Admin credentials:');
+  console.log('   Email: admin@jewellery.com');
+  console.log('   Password:', adminPassword);
+  credentials.push({ email: 'admin@jewellery.com', password: adminPassword, role: 'ADMIN' });
 
-  // Create test user (only in development)
-  if (process.env.NODE_ENV === 'development') {
-    const testUserPassword = process.env.TEST_USER_PASSWORD || generateRandomPassword(12);
-    const userPassword = await bcrypt.hash(testUserPassword, 10);
-    const user = await prisma.user.upsert({
-      where: { email: 'user@example.com' },
-      update: {},
-      create: {
-        email: 'user@example.com',
-        name: 'Test User',
-        password: userPassword,
-        phone: '+919876543211',
-        role: 'USER',
-      },
-    });
+  // Create test user (always create, not just in development)
+  const testUserPassword = process.env.TEST_USER_PASSWORD || generateRandomPassword(12);
+  const userPassword = await bcrypt.hash(testUserPassword, 10);
+  const user = await prisma.user.upsert({
+    where: { email: 'user@example.com' },
+    update: {
+      password: userPassword, // Update password if user exists
+    },
+    create: {
+      email: 'user@example.com',
+      name: 'Test User',
+      password: userPassword,
+      phone: '+919876543211',
+      role: 'USER',
+    },
+  });
 
-    console.log('✅ Test user created:', user.email);
-    if (!process.env.TEST_USER_PASSWORD) {
-      console.log('⚠️  Test user password:', testUserPassword);
-    }
-  }
+  console.log('✅ Test user created:', user.email);
+  console.log('⚠️  Test user credentials:');
+  console.log('   Email: user@example.com');
+  console.log('   Password:', testUserPassword);
+  credentials.push({ email: 'user@example.com', password: testUserPassword, role: 'USER' });
+
+  // Save credentials to file
+  const credentialsPath = join(process.cwd(), 'SEED_CREDENTIALS.json');
+  writeFileSync(credentialsPath, JSON.stringify(credentials, null, 2), 'utf-8');
+  console.log(`\n📝 Credentials saved to: ${credentialsPath}`);
 
   // Create sample products
   const products = [
