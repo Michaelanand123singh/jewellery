@@ -56,7 +56,8 @@ export class CategoryRepository {
           orderBy: { order: 'asc' },
         },
       },
-      orderBy: [{ navOrder: 'asc' }, { order: 'asc' }, { name: 'asc' }],
+      // Order by the manual display order then name; navOrder is handled at UI level
+      orderBy: [{ order: 'asc' }, { name: 'asc' }],
     }) as unknown as Category[];
   }
 
