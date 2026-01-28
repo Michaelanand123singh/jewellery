@@ -39,7 +39,8 @@ export function ProductSettings() {
 
   const fetchSettings = async () => {
     try {
-      const response = await apiClient.get<ProductSettings>("/api/v1/settings/product");
+      // apiClient already prefixes with /api/v1, so we pass the relative path
+      const response = await apiClient.get<ProductSettings>("/settings/product");
       if (response.success && response.data) {
         setFormData(response.data);
       }
@@ -56,7 +57,8 @@ export function ProductSettings() {
     setSaving(true);
 
     try {
-      await apiClient.put("/api/v1/settings/product", formData);
+      // apiClient already prefixes with /api/v1, so we pass the relative path
+      await apiClient.put("/settings/product", formData);
       toast.success("Product settings saved successfully");
     } catch (error: any) {
       toast.error(error.message || "Failed to save settings");

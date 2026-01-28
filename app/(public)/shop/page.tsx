@@ -35,6 +35,15 @@ import { cn } from "@/lib/utils";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 
+// Category type used for shop sidebar (from /api/v1/categories?tree=true)
+interface ShopCategory {
+  id: string;
+  name: string;
+  slug: string;
+  showInNav?: boolean;
+  children?: ShopCategory[];
+}
+
 // Category mapping from URL to display names
 const categoryMap: Record<string, string> = {
   women: "Women",
@@ -85,6 +94,7 @@ function ShopPageContent() {
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [showMoreCategories, setShowMoreCategories] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [sidebarCategories, setSidebarCategories] = useState<ShopCategory[]>([]);
 
   // Update URL params helper
   const updateURL = (updates: Record<string, string | number | null | undefined>) => {
@@ -212,6 +222,35 @@ function ShopPageContent() {
     };
   }, []);
 
+  // Fetch categories for sidebar (managed from admin panel)
+  useEffect(() => {
+    const fetchSidebarCategories = async () => {
+      try {
+        const response = await apiClient.get<ShopCategory[]>("/categories", { tree: "true" });
+        if (response.success && response.data) {
+          const flat: ShopCategory[] = [];
+
+          const walk = (node: ShopCategory) => {
+            // For now, reuse showInNav as the admin-controlled flag
+            if (node.showInNav) {
+              flat.push(node);
+            }
+            if (node.children && node.children.length > 0) {
+              node.children.forEach(walk);
+            }
+          };
+
+          response.data.forEach(walk);
+          setSidebarCategories(flat);
+        }
+      } catch (error) {
+        console.error("Failed to fetch sidebar categories:", error);
+      }
+    };
+
+    fetchSidebarCategories();
+  }, []);
+
   // Manual refresh handler
   const handleRefresh = async () => {
     await Promise.all([fetchProducts(true), fetchAllProducts()]);
@@ -235,34 +274,33 @@ function ShopPageContent() {
     }
   }, [category, rating, inStock, onSale, minPrice, maxPrice]);
 
-  // Get unique categories from all products with counts
+  // Get sidebar categories (admin-managed) with product counts
   const availableCategories = useMemo(() => {
+    // Count products per category slug
     const categoryCounts = allProducts.reduce((acc, product) => {
       acc[product.category] = (acc[product.category] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
-    
-    return Object.entries(categoryCounts)
-      .map(([category, count]) => ({ category, count }))
-      .sort((a, b) => b.count - a.count);
-  }, [allProducts]);
 
-  // Category display names mapping
-  const categoryDisplayNames: Record<string, string> = {
-    "women": "Women",
-    "kids": "Kids",
-    "artificial": "Artificial Jewellery",
-    "footwear": "Footwear",
-    "accessories": "Accessories",
-    "earrings": "Earrings",
-    "bangle": "Bangle",
-    "necklace": "Necklace and Chains",
-    "bracelet": "Bracelet",
-    "jewellery-set": "Jewellery Set",
-    "ring": "Ring",
-    "pendant": "Pendant",
-    "mangalsutra": "Mangalsutra",
-  };
+    // Map admin-managed sidebar categories to { slug, label, count }
+    const list = sidebarCategories.map((cat) => ({
+      slug: cat.slug,
+      label: cat.name,
+      count: categoryCounts[cat.slug] || 0,
+    }));
+
+    // Sort by count (desc) to keep most popular at top
+    return list.sort((a, b) => b.count - a.count);
+  }, [allProducts, sidebarCategories]);
+
+  // Map of sidebar category slug to display name for quick lookup
+  const sidebarCategoryLabels = useMemo(() => {
+    const map: Record<string, string> = {};
+    sidebarCategories.forEach((cat) => {
+      map[cat.slug] = cat.name;
+    });
+    return map;
+  }, [sidebarCategories]);
 
   // Gender options
   const genderOptions = ["Men", "Women", "Boys", "Girls"];
@@ -547,20 +585,20 @@ function ShopPageContent() {
                   </div>
                   
                   <div className="space-y-2.5 max-h-96 overflow-y-auto">
-                    {(showMoreCategories ? availableCategories : availableCategories.slice(0, 8)).map(({ category: cat, count }) => (
-                      <div key={cat} className="flex items-center space-x-2">
+                    {(showMoreCategories ? availableCategories : availableCategories.slice(0, 8)).map(({ slug, count }) => (
+                      <div key={slug} className="flex items-center space-x-2">
                         <Checkbox
-                          id={cat}
-                          checked={selectedCategories.includes(cat) || category === cat}
-                          onCheckedChange={() => toggleCategory(cat)}
+                          id={slug}
+                          checked={selectedCategories.includes(slug) || category === slug}
+                          onCheckedChange={() => toggleCategory(slug)}
                           className="h-3.5 w-3.5"
                         />
                         <label
-                          htmlFor={cat}
+                          htmlFor={slug}
                           className="text-xs font-normal leading-none cursor-pointer flex-1 flex items-center justify-between"
                         >
                           <span className="capitalize">
-                            {categoryDisplayNames[cat] || cat.replace(/-/g, " ")}
+                            {sidebarCategoryLabels[slug] || slug.replace(/-/g, " ")}
                           </span>
                           <span className="text-muted-foreground ml-2 text-[10px]">({count.toLocaleString()})</span>
                         </label>

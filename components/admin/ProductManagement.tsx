@@ -70,45 +70,13 @@ interface ProductFormData {
     stockQuantity: string;
 }
 
-// Category and subcategory structure matching frontend
-const CATEGORIES = [
-    {
-        value: "women",
-        label: "Women",
-        subcategories: [
-            { value: "rings", label: "Rings" },
-            { value: "necklaces", label: "Necklaces" },
-            { value: "earrings", label: "Earrings" },
-            { value: "bracelets", label: "Bracelets" },
-        ],
-    },
-    {
-        value: "kids",
-        label: "Kids",
-        subcategories: [
-            { value: "rings", label: "Rings" },
-            { value: "necklaces", label: "Necklaces" },
-        ],
-    },
-    {
-        value: "artificial",
-        label: "Artificial Jewellery",
-        subcategories: [
-            { value: "rings", label: "Rings" },
-            { value: "necklaces", label: "Necklaces" },
-        ],
-    },
-    {
-        value: "footwear",
-        label: "Footwear",
-        subcategories: [],
-    },
-    {
-        value: "accessories",
-        label: "Accessories",
-        subcategories: [],
-    },
-] as const;
+// Category type as returned from /api/v1/categories?tree=true
+interface CategoryNode {
+  id: string;
+  name: string;
+  slug: string;
+  children?: CategoryNode[];
+}
 
 const initialFormData: ProductFormData = {
     name: "",
@@ -128,6 +96,8 @@ export default function ProductManagement() {
     // const router = useRouter(); // Handled by layout/middleware
     const { user } = useAuthStore();
     const [products, setProducts] = useState<Product[]>([]);
+    const [categories, setCategories] = useState<CategoryNode[]>([]);
+    const [categoriesLoading, setCategoriesLoading] = useState<boolean>(true);
     const [loading, setLoading] = useState(true);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -145,6 +115,7 @@ export default function ProductManagement() {
     useEffect(() => {
         if (user?.role === "ADMIN") {
             fetchProducts();
+            fetchCategories();
         }
     }, [user]);
 
@@ -175,15 +146,58 @@ export default function ProductManagement() {
         }
     };
 
+    const fetchCategories = async () => {
+        try {
+            setCategoriesLoading(true);
+            // Use v1 categories API with tree=true so we get parent/child structure
+            const response = await apiClient.get<CategoryNode[]>("/categories", { tree: "true" });
+            if (response.success && response.data) {
+                setCategories(response.data);
+            }
+        } catch (error) {
+            console.error("Failed to fetch categories:", error);
+            toast.error("Failed to load categories");
+        } finally {
+            setCategoriesLoading(false);
+        }
+    };
+
     const handleOpenDialog = (product?: Product) => {
         if (product) {
             setEditingProduct(product);
-            // Extract category and subcategory from product.category
-            // If category is stored as "women-rings", split it
-            const categoryParts = (product.category || "").split("-");
-            const mainCategory = categoryParts[0] || "";
-            const subcategory = categoryParts[1] || "";
-            
+
+            // Map saved category slug back to category + optional subcategory
+            const findBySlug = (nodes: CategoryNode[], slug: string): { node: CategoryNode | null; parent?: CategoryNode | null } => {
+              for (const node of nodes) {
+                if (node.slug === slug) {
+                  return { node, parent: undefined };
+                }
+                if (node.children && node.children.length > 0) {
+                  const match = findBySlug(node.children, slug);
+                  if (match.node) {
+                    return { node: match.node, parent: match.parent ?? node };
+                  }
+                }
+              }
+              return { node: null, parent: undefined };
+            };
+
+            const { node, parent } = findBySlug(categories, product.category || "");
+
+            let mainCategorySlug = "";
+            let subcategorySlug = "";
+
+            if (node) {
+              if (parent && parent.slug !== node.slug) {
+                // Child category selected
+                mainCategorySlug = parent.slug;
+                subcategorySlug = node.slug;
+              } else {
+                // Root category
+                mainCategorySlug = node.slug;
+              }
+            }
+
             setFormData({
                 name: product.name || "",
                 slug: product.slug || "",
@@ -192,8 +206,8 @@ export default function ProductManagement() {
                 originalPrice: product.originalPrice != null ? product.originalPrice.toString() : "",
                 image: product.image || "",
                 images: product.images?.join(", ") || "",
-                category: mainCategory,
-                subcategory: subcategory,
+                category: mainCategorySlug,
+                subcategory: subcategorySlug,
                 inStock: product.inStock ?? true,
                 stockQuantity: product.stockQuantity != null ? product.stockQuantity.toString() : "0",
             });
@@ -259,26 +273,48 @@ export default function ProductManagement() {
     };
 
     // Get available subcategories for selected category
-    const getAvailableSubcategories = (categoryValue?: string) => {
-        const category = categoryValue || formData.category;
-        const selectedCategory = CATEGORIES.find((cat) => cat.value === category);
-        return selectedCategory?.subcategories || [];
+    const getAvailableSubcategories = (parentSlug?: string) => {
+        const slug = parentSlug || formData.category;
+        const parent = categories.find((cat) => cat.slug === slug);
+        return parent?.children || [];
     };
 
     // Helper to format category display in table
-    const formatCategoryDisplay = (categoryString: string) => {
-        const categoryParts = categoryString.split("-");
-        const mainCategory = CATEGORIES.find(c => c.value === categoryParts[0]);
-        const subcategories = getAvailableSubcategories(categoryParts[0]);
-        const subcategory = categoryParts[1] 
-            ? subcategories.find(s => s.value === categoryParts[1])
-            : null;
-        return (
+    const formatCategoryDisplay = (categorySlug: string) => {
+        if (!categorySlug) return <span>-</span>;
+
+        // Find matching category node by slug
+        const findBySlug = (nodes: CategoryNode[], slug: string): { node: CategoryNode | null; parent?: CategoryNode | null } => {
+          for (const node of nodes) {
+            if (node.slug === slug) {
+              return { node, parent: undefined };
+            }
+            if (node.children && node.children.length > 0) {
+              const match = findBySlug(node.children, slug);
+              if (match.node) {
+                return { node: match.node, parent: match.parent ?? node };
+              }
+            }
+          }
+          return { node: null, parent: undefined };
+        };
+
+        const { node, parent } = findBySlug(categories, categorySlug);
+
+        if (!node) {
+          // Fallback: just show the raw slug nicely formatted
+          return <span>{categorySlug.replace(/-/g, " ")}</span>;
+        }
+
+        if (parent && parent.slug !== node.slug) {
+          return (
             <span>
-                {mainCategory?.label || categoryParts[0]}
-                {subcategory && ` - ${subcategory.label}`}
+              {parent.name} - {node.name}
             </span>
-        );
+          );
+        }
+
+        return <span>{node.name}</span>;
     };
 
     const handleMainImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -419,12 +455,9 @@ export default function ProductManagement() {
                 .map((img) => img.trim())
                 .filter((img) => img);
 
-            // Combine category and subcategory if subcategory is selected
-            // Store as "category" or "category-subcategory" format
-            let finalCategory = formData.category;
-            if (formData.subcategory) {
-                finalCategory = `${formData.category}-${formData.subcategory}`;
-            }
+            // Use category slug from selection; if a subcategory is selected,
+            // store the subcategory slug, otherwise store the root category slug.
+            const finalCategory = formData.subcategory || formData.category;
 
             const productData = {
                 name: formData.name,
@@ -689,9 +722,9 @@ export default function ProductManagement() {
                                         <SelectValue placeholder="Select a category" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {CATEGORIES.map((category) => (
-                                            <SelectItem key={category.value} value={category.value}>
-                                                {category.label}
+                                        {categories.map((category) => (
+                                            <SelectItem key={category.id} value={category.slug}>
+                                                {category.name}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
@@ -711,8 +744,8 @@ export default function ProductManagement() {
                                         <SelectContent>
                                             <SelectItem value="none">None</SelectItem>
                                             {getAvailableSubcategories().map((subcategory) => (
-                                                <SelectItem key={subcategory.value} value={subcategory.value}>
-                                                    {subcategory.label}
+                                                <SelectItem key={subcategory.id} value={subcategory.slug}>
+                                                    {subcategory.name}
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>

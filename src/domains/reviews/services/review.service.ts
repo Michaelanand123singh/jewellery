@@ -12,14 +12,17 @@ import {
 import { PaginationParams } from '@/src/shared/types/common.types';
 import { NotFoundError, ValidationError } from '@/src/shared/utils/errors';
 import { prisma } from '@/src/infrastructure/database/prisma';
+import { SettingsService } from '@/src/domains/settings/services/settings.service';
 
 export class ReviewService {
   private reviewRepository: ReviewRepository;
   private productRepository: ProductRepository;
+  private settingsService: SettingsService;
 
   constructor() {
     this.reviewRepository = new ReviewRepository();
     this.productRepository = new ProductRepository();
+    this.settingsService = new SettingsService();
   }
 
   async getReviewById(id: string): Promise<Review> {
@@ -49,6 +52,13 @@ export class ReviewService {
   }
 
   async createReview(data: CreateReviewData): Promise<Review> {
+    // Respect product settings for reviews
+    const productSettings = await this.settingsService.getProductSettings();
+
+    if (!productSettings.enableReviews) {
+      throw new ValidationError('Product reviews are currently disabled');
+    }
+
     // Verify product exists
     await this.productRepository.findById(data.productId);
 
@@ -68,9 +78,12 @@ export class ReviewService {
       productId: data.productId,
       rating: data.rating,
       comment: data.comment,
+      // If approval is required, mark as unverified so that it doesn't
+      // affect public ratings until approved by an admin.
+      verified: !productSettings.requireReviewApproval,
     });
 
-    // Update product rating
+    // Update product rating (only counts verified reviews)
     await this.updateProductRating(data.productId);
 
     return review;

@@ -230,7 +230,8 @@ export class InventoryRepository {
 
   async getProductInventory(
     filters?: { category?: string; lowStock?: boolean; outOfStock?: boolean; search?: string },
-    pagination?: PaginationParams
+    pagination?: PaginationParams,
+    lowStockThreshold: number = 10
   ): Promise<{ products: ProductInventory[]; total: number }> {
     const where: any = {};
 
@@ -242,8 +243,9 @@ export class InventoryRepository {
     }
 
     if (filters?.lowStock) {
+      // Use configurable low-stock threshold (falls back to 10 if not provided)
       where.stockQuantity = {
-        lte: 10,
+        lte: lowStockThreshold,
         gt: 0,
       };
       where.inStock = true;

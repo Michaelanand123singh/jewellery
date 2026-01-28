@@ -16,7 +16,7 @@ export class CategoryRepository {
           orderBy: { order: 'asc' },
         },
       },
-    });
+    }) as unknown as Category | null;
   }
 
   async findBySlug(slug: string): Promise<Category | null> {
@@ -28,7 +28,7 @@ export class CategoryRepository {
           orderBy: { order: 'asc' },
         },
       },
-    });
+    }) as unknown as Category | null;
   }
 
   async findMany(includeInactive: boolean = false): Promise<Category[]> {
@@ -41,7 +41,7 @@ export class CategoryRepository {
         },
       },
       orderBy: [{ order: 'asc' }, { name: 'asc' }],
-    });
+    }) as unknown as Category[];
   }
 
   async findRootCategories(includeInactive: boolean = false): Promise<Category[]> {
@@ -56,8 +56,8 @@ export class CategoryRepository {
           orderBy: { order: 'asc' },
         },
       },
-      orderBy: [{ order: 'asc' }, { name: 'asc' }],
-    });
+      orderBy: [{ navOrder: 'asc' }, { order: 'asc' }, { name: 'asc' }],
+    }) as unknown as Category[];
   }
 
   async create(data: CreateCategoryData): Promise<Category> {
@@ -81,12 +81,14 @@ export class CategoryRepository {
         parentId: data.parentId || null,
         order: data.order || 0,
         isActive: data.isActive !== undefined ? data.isActive : true,
+        showInNav: data.showInNav !== undefined ? data.showInNav : false,
+        navOrder: data.navOrder ?? 0,
       },
       include: {
         parent: true,
         children: true,
       },
-    });
+    }) as unknown as Category;
   }
 
   async update(id: string, data: UpdateCategoryData): Promise<Category> {
@@ -128,12 +130,14 @@ export class CategoryRepository {
         parentId: data.parentId !== undefined ? data.parentId : undefined,
         order: data.order,
         isActive: data.isActive,
+        showInNav: data.showInNav,
+        navOrder: data.navOrder,
       },
       include: {
         parent: true,
         children: true,
       },
-    });
+    }) as unknown as Category;
   }
 
   async delete(id: string): Promise<void> {

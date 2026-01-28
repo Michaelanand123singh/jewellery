@@ -46,7 +46,8 @@ export function GeneralSettings() {
 
   const fetchSettings = async () => {
     try {
-      const response = await apiClient.get<GeneralSettings>("/api/v1/settings/general");
+      // apiClient already prefixes with /api/v1, so we pass the relative path
+      const response = await apiClient.get<GeneralSettings>("/settings/general");
       if (response.success && response.data) {
         setFormData(response.data);
       }
@@ -63,7 +64,8 @@ export function GeneralSettings() {
     setSaving(true);
 
     try {
-      await apiClient.put("/api/v1/settings/general", formData);
+      // apiClient already prefixes with /api/v1, so we pass the relative path
+      await apiClient.put("/settings/general", formData);
       toast.success("General settings saved successfully");
     } catch (error: any) {
       toast.error(error.message || "Failed to save settings");

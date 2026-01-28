@@ -12,6 +12,8 @@ export const createCategorySchema = z.object({
   parentId: z.string().nullable().optional(),
   order: z.number().int().min(0).default(0),
   isActive: z.boolean().default(true),
+  showInNav: z.boolean().default(false),
+  navOrder: z.number().int().min(0).default(0),
 });
 
 export const updateCategorySchema = z.object({
@@ -22,5 +24,7 @@ export const updateCategorySchema = z.object({
   parentId: z.string().nullable().optional(),
   order: z.number().int().min(0).optional(),
   isActive: z.boolean().optional(),
+  showInNav: z.boolean().optional(),
+  navOrder: z.number().int().min(0).optional(),
 });
 

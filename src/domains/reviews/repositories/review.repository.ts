@@ -88,6 +88,7 @@ export class ReviewRepository {
     productId: string;
     rating: number;
     comment?: string;
+    verified?: boolean;
   }): Promise<Review> {
     return prisma.review.create({
       data,
@@ -142,7 +143,9 @@ export class ReviewRepository {
 
   async calculateProductRating(productId: string): Promise<{ rating: number; count: number }> {
     const reviews = await prisma.review.findMany({
-      where: { productId },
+      // Only include verified reviews when calculating rating, so that
+      // pending/unapproved reviews (when enabled) don't affect the score.
+      where: { productId, verified: true },
       select: { rating: true },
     });
 
