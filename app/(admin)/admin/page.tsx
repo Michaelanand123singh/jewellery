@@ -154,7 +154,7 @@ export default function AdminDashboard() {
                     </CardHeader>
                     <CardContent className="pl-2">
                         <div className="h-[200px] flex items-center justify-center border-dashed border-2 rounded-md bg-muted/50 text-muted-foreground">
-                            Chart Placeholder
+                            Chart Placeholders
                         </div>
                     </CardContent>
                 </Card>
