@@ -276,6 +276,9 @@ model Category {
   children    Category[] @relation("CategoryParent")
   order       Int       @default(0) // For sorting
   isActive    Boolean   @default(true)
+  // Navigation settings
+  showInNav   Boolean   @default(false) // Whether to show this category in the main navigation
+  navOrder    Int       @default(0)     // Order within navigation
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   

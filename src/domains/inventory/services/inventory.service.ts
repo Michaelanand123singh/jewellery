@@ -14,12 +14,15 @@ import {
   StockMovementType,
 } from '../types/inventory.types';
 import { NotFoundError } from '@/src/shared/utils/errors';
+import { SettingsService } from '@/src/domains/settings/services/settings.service';
 
 export class InventoryService {
   private inventoryRepository: InventoryRepository;
+  private settingsService: SettingsService;
 
   constructor() {
     this.inventoryRepository = new InventoryRepository();
+    this.settingsService = new SettingsService();
   }
 
   async createStockMovement(data: CreateStockMovementData): Promise<StockMovement> {
@@ -68,17 +71,33 @@ export class InventoryService {
     return { movements, total, totalPages };
   }
 
-  async getInventoryStats(lowStockThreshold: number = 10): Promise<InventoryStats> {
-    return this.inventoryRepository.getInventoryStats(lowStockThreshold);
+  async getInventoryStats(lowStockThreshold?: number): Promise<InventoryStats> {
+    // If caller didn't provide a threshold, fall back to product settings
+    let effectiveThreshold = lowStockThreshold;
+
+    if (effectiveThreshold === undefined) {
+      const productSettings = await this.settingsService.getProductSettings();
+      effectiveThreshold = productSettings.defaultStockThreshold;
+    }
+
+    return this.inventoryRepository.getInventoryStats(effectiveThreshold);
   }
 
   async getProductInventory(
     filters?: { category?: string; lowStock?: boolean; outOfStock?: boolean; search?: string },
     pagination?: PaginationParams
   ): Promise<{ products: ProductInventory[]; total: number; totalPages: number }> {
+    // Load low-stock threshold from settings only when needed
+    let lowStockThreshold: number | undefined;
+    if (filters?.lowStock) {
+      const productSettings = await this.settingsService.getProductSettings();
+      lowStockThreshold = productSettings.defaultStockThreshold;
+    }
+
     const { products, total } = await this.inventoryRepository.getProductInventory(
       filters,
-      pagination
+      pagination,
+      lowStockThreshold
     );
 
     const limit = pagination?.limit ?? 50;

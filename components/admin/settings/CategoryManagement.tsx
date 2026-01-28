@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, Fragment } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -51,6 +51,8 @@ interface Category {
   children?: Category[];
   order: number;
   isActive: boolean;
+  showInNav: boolean;
+  navOrder: number;
 }
 
 interface CategoryFormData {
@@ -61,6 +63,8 @@ interface CategoryFormData {
   parentId: string;
   order: string;
   isActive: boolean;
+  showInNav: boolean;
+  navOrder: string;
 }
 
 export function CategoryManagement() {
@@ -76,6 +80,8 @@ export function CategoryManagement() {
     parentId: "",
     order: "0",
     isActive: true,
+    showInNav: false,
+    navOrder: "0",
   });
 
   useEffect(() => {
@@ -85,7 +91,9 @@ export function CategoryManagement() {
   const fetchCategories = async () => {
     setLoading(true);
     try {
-      const response = await apiClient.get<Category[]>("/api/v1/categories?tree=true");
+      // apiClient already prefixes with /api/v1, so use a relative path
+      // Query params must be string/number for apiClient
+      const response = await apiClient.get<Category[]>("/categories", { tree: "true" });
       if (response.success && response.data) {
         setCategories(response.data);
       }
@@ -109,13 +117,17 @@ export function CategoryManagement() {
         parentId: formData.parentId || null,
         order: parseInt(formData.order) || 0,
         isActive: formData.isActive,
+        showInNav: formData.showInNav,
+        navOrder: parseInt(formData.navOrder) || 0,
       };
 
       if (editingCategory) {
-        await apiClient.put(`/api/v1/categories/${editingCategory.id}`, payload);
+        // Relative path – apiClient adds /api/v1
+        await apiClient.put(`/categories/${editingCategory.id}`, payload);
         toast.success("Category updated successfully");
       } else {
-        await apiClient.post("/api/v1/categories", payload);
+        // Relative path – apiClient adds /api/v1
+        await apiClient.post("/categories", payload);
         toast.success("Category created successfully");
       }
 
@@ -137,6 +149,8 @@ export function CategoryManagement() {
       parentId: category.parentId || "",
       order: category.order.toString(),
       isActive: category.isActive,
+      showInNav: category.showInNav,
+      navOrder: category.navOrder.toString(),
     });
     setDialogOpen(true);
   };
@@ -145,7 +159,8 @@ export function CategoryManagement() {
     if (!confirm("Are you sure you want to delete this category?")) return;
 
     try {
-      await apiClient.delete(`/api/v1/categories/${id}`);
+      // Relative path – apiClient adds /api/v1
+      await apiClient.delete(`/categories/${id}`);
       toast.success("Category deleted successfully");
       fetchCategories();
     } catch (error: any) {
@@ -162,14 +177,16 @@ export function CategoryManagement() {
       parentId: "",
       order: "0",
       isActive: true,
+      showInNav: false,
+      navOrder: "0",
     });
     setEditingCategory(null);
   };
 
   const renderCategoryRow = (category: Category, level: number = 0): React.ReactElement => {
     return (
-      <>
-        <TableRow key={category.id}>
+      <Fragment key={category.id}>
+        <TableRow>
           <TableCell style={{ paddingLeft: `${level * 2 + 1}rem` }}>
             <div className="flex items-center gap-2">
               {level > 0 && <span className="text-muted-foreground">└─</span>}
@@ -205,7 +222,7 @@ export function CategoryManagement() {
           </TableCell>
         </TableRow>
         {category.children?.map((child) => renderCategoryRow(child, level + 1))}
-      </>
+      </Fragment>
     );
   };
 
@@ -324,14 +341,17 @@ export function CategoryManagement() {
                 <div className="space-y-2">
                   <Label htmlFor="parentId">Parent Category</Label>
                   <Select
-                    value={formData.parentId}
-                    onValueChange={(value) => setFormData({ ...formData, parentId: value })}
+                    // Use a non-empty sentinel value for "no parent" to satisfy Radix Select
+                    value={formData.parentId !== "" ? formData.parentId : "root"}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, parentId: value === "root" ? "" : value })
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="None (Root Category)" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None (Root Category)</SelectItem>
+                      <SelectItem value="root">None (Root Category)</SelectItem>
                       {categories
                         .filter((cat) => !editingCategory || cat.id !== editingCategory.id)
                         .map((category) => (
@@ -367,6 +387,32 @@ export function CategoryManagement() {
                   Active
                 </Label>
               </div>
+
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="showInNav"
+                  checked={formData.showInNav}
+                  onChange={(e) => setFormData({ ...formData, showInNav: e.target.checked })}
+                  className="rounded"
+                />
+                <Label htmlFor="showInNav" className="cursor-pointer">
+                  Show in main navigation
+                </Label>
+              </div>
+
+              {formData.showInNav && (
+                <div className="space-y-2">
+                  <Label htmlFor="navOrder">Navigation Order</Label>
+                  <Input
+                    id="navOrder"
+                    type="number"
+                    min="0"
+                    value={formData.navOrder}
+                    onChange={(e) => setFormData({ ...formData, navOrder: e.target.value })}
+                  />
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button

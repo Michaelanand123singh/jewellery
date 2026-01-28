@@ -13,6 +13,8 @@ export interface Category {
   children?: Category[];
   order: number;
   isActive: boolean;
+  showInNav: boolean;
+  navOrder: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -25,6 +27,8 @@ export interface CreateCategoryData {
   parentId?: string | null;
   order?: number;
   isActive?: boolean;
+   showInNav?: boolean;
+   navOrder?: number;
 }
 
 export interface UpdateCategoryData {
@@ -35,6 +39,8 @@ export interface UpdateCategoryData {
   parentId?: string | null;
   order?: number;
   isActive?: boolean;
+   showInNav?: boolean;
+   navOrder?: number;
 }
 
 export interface CategoryTree extends Category {
