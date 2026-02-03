@@ -125,25 +125,16 @@ export default function BlogManagement() {
     const fetchBlogs = async () => {
         try {
             setLoading(true);
-            const response = await fetch("/api/v1/blogs?limit=100");
-            if (!response.ok) {
-                console.error("Failed to fetch blogs:", response.statusText);
-                toast.error("Failed to load blogs");
-                return;
+            const response = await apiClient.get<Blog[]>("/blogs", { limit: 100 });
+            if (response.success && response.data) {
+                // API returns { success: true, data: Blog[] }
+                setBlogs(response.data);
+            } else {
+                toast.error(response.error || "Failed to load blogs");
             }
-            const contentType = response.headers.get("content-type");
-            if (!contentType || !contentType.includes("application/json")) {
-                console.error("Blogs endpoint returned non-JSON response");
-                toast.error("Failed to load blogs");
-                return;
-            }
-            const data = await response.json();
-            if (data.success) {
-                setBlogs(data.data);
-            }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to fetch blogs:", error);
-            toast.error("Failed to load blogs");
+            toast.error(error.message || "Failed to load blogs");
         } finally {
             setLoading(false);
         }
@@ -198,8 +189,10 @@ export default function BlogManagement() {
     const generateSlug = (title: string) => {
         return title
             .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "-")
-            .replace(/(^-|-$)/g, "");
+            .trim()
+            .replace(/[^\w\s-]/g, '')
+            .replace(/[\s_-]+/g, '-')
+            .replace(/^-+|-+$/g, '');
     };
 
     const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -320,7 +313,8 @@ export default function BlogManagement() {
                 .map((tag) => tag.trim())
                 .filter((tag) => tag);
 
-            const blogData = {
+            // Prepare blog data
+            const blogData: any = {
                 title: formData.title.trim(),
                 slug: formData.slug.trim(),
                 excerpt: formData.excerpt.trim(),
@@ -331,9 +325,28 @@ export default function BlogManagement() {
                 readTime: formData.readTime?.trim() || undefined,
                 tags: tagsArray,
                 published: formData.published,
-                publishedAt: formData.published ? new Date().toISOString() : undefined,
                 faqs: formData.faqs.filter((faq) => faq.question && faq.answer),
             };
+
+            // Handle publishedAt - only set if publishing for the first time or changing published status
+            if (editingBlog) {
+                // When updating, only set publishedAt if:
+                // 1. Changing from unpublished to published
+                // 2. Or if already published and we want to keep it published (don't change publishedAt)
+                if (formData.published && !editingBlog.published) {
+                    // Changing from draft to published
+                    blogData.publishedAt = new Date().toISOString();
+                } else if (!formData.published) {
+                    // Changing to draft - clear publishedAt
+                    blogData.publishedAt = null;
+                }
+                // If already published and staying published, don't send publishedAt to preserve original date
+            } else {
+                // Creating new blog
+                if (formData.published) {
+                    blogData.publishedAt = new Date().toISOString();
+                }
+            }
 
             let response;
             if (editingBlog) {
@@ -349,11 +362,28 @@ export default function BlogManagement() {
                 handleCloseDialog();
                 fetchBlogs();
             } else {
-                toast.error(response.error || "Failed to save blog");
+                // Handle validation errors from backend
+                const errorMessage = response.error || "Failed to save blog";
+                if (response.errors && Array.isArray(response.errors)) {
+                    // Multiple validation errors
+                    response.errors.forEach((err: any) => {
+                        toast.error(err.message || err.path || "Validation error");
+                    });
+                } else {
+                    toast.error(errorMessage);
+                }
             }
         } catch (error: any) {
             console.error("Error saving blog:", error);
-            toast.error(error.message || "Failed to save blog");
+            // Handle Zod validation errors
+            if (error.errors && Array.isArray(error.errors)) {
+                error.errors.forEach((err: any) => {
+                    const field = err.path?.join('.') || 'field';
+                    toast.error(`${field}: ${err.message}`);
+                });
+            } else {
+                toast.error(error.message || "Failed to save blog");
+            }
         } finally {
             setSubmitting(false);
         }
