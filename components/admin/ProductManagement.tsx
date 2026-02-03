@@ -648,10 +648,50 @@ export default function ProductManagement() {
         setSubmitting(true);
 
         try {
+            // Validate required fields
+            if (!formData.name.trim()) {
+                toast.error("Product name is required");
+                setSubmitting(false);
+                return;
+            }
+
+            if (!formData.slug.trim()) {
+                toast.error("Product slug is required");
+                setSubmitting(false);
+                return;
+            }
+
+            if (!formData.price || parseFloat(formData.price) <= 0) {
+                toast.error("Valid price is required");
+                setSubmitting(false);
+                return;
+            }
+
+            if (!formData.image.trim()) {
+                toast.error("Product image is required");
+                setSubmitting(false);
+                return;
+            }
+
+            // Validate image URL format
+            try {
+                new URL(formData.image);
+            } catch {
+                toast.error("Image must be a valid URL");
+                setSubmitting(false);
+                return;
+            }
+
+            if (!formData.category) {
+                toast.error("Category is required");
+                setSubmitting(false);
+                return;
+            }
+
             const imagesArray = formData.images
                 .split(",")
                 .map((img) => img.trim())
-                .filter((img) => img);
+                .filter((img) => img && img.length > 0);
 
             // Use category slug from selection; if a subcategory is selected,
             // store the subcategory slug, otherwise store the root category slug.
@@ -673,8 +713,8 @@ export default function ProductManagement() {
 
             const finalCategoryId = formData.categoryId || findCategoryId(finalCategory);
 
-            // Parse dimensions
-            const dimensions = formData.dimensionsLength || formData.dimensionsWidth || formData.dimensionsHeight
+            // Parse dimensions - only include if at least one dimension is provided
+            const dimensions = (formData.dimensionsLength || formData.dimensionsWidth || formData.dimensionsHeight)
                 ? {
                     length: formData.dimensionsLength ? parseFloat(formData.dimensionsLength) : undefined,
                     width: formData.dimensionsWidth ? parseFloat(formData.dimensionsWidth) : undefined,
@@ -688,42 +728,54 @@ export default function ProductManagement() {
                 ? formData.metaKeywords.split(",").map(k => k.trim()).filter(k => k)
                 : [];
 
+            // Helper to convert empty strings to undefined
+            const cleanString = (value: string | undefined): string | undefined => {
+                return value && value.trim() ? value.trim() : undefined;
+            };
+
+            // Helper to parse number or return undefined
+            const parseNumber = (value: string | undefined): number | undefined => {
+                if (!value || !value.trim()) return undefined;
+                const parsed = parseFloat(value);
+                return isNaN(parsed) ? undefined : parsed;
+            };
+
             const productData = {
-                name: formData.name,
-                slug: formData.slug,
-                sku: formData.sku || undefined,
-                description: formData.description || undefined,
+                name: formData.name.trim(),
+                slug: formData.slug.trim(),
+                sku: cleanString(formData.sku),
+                description: cleanString(formData.description),
                 price: parseFloat(formData.price),
-                originalPrice: formData.originalPrice
-                    ? parseFloat(formData.originalPrice)
-                    : undefined,
-                image: formData.image,
-                images: imagesArray,
+                originalPrice: parseNumber(formData.originalPrice),
+                image: formData.image.trim(),
+                images: imagesArray.length > 0 ? imagesArray : undefined,
                 category: finalCategory, // Legacy: kept for backward compatibility
-                categoryId: finalCategoryId, // New: FK
+                categoryId: finalCategoryId || undefined, // New: FK
                 status: formData.status,
                 inStock: formData.inStock,
-                stockQuantity: parseInt(formData.stockQuantity),
+                stockQuantity: parseInt(formData.stockQuantity) || 0,
                 // SEO fields
-                metaTitle: formData.metaTitle || undefined,
-                metaDescription: formData.metaDescription || undefined,
+                metaTitle: cleanString(formData.metaTitle),
+                metaDescription: cleanString(formData.metaDescription),
                 metaKeywords: metaKeywords.length > 0 ? metaKeywords : undefined,
-                ogImage: formData.ogImage || undefined,
+                ogImage: cleanString(formData.ogImage),
                 // Physical attributes
-                weight: formData.weight ? parseFloat(formData.weight) : undefined,
+                weight: parseNumber(formData.weight),
                 dimensions: dimensions,
-                taxClass: formData.taxClass || undefined,
+                taxClass: cleanString(formData.taxClass) || undefined,
                 // Supplier information
-                supplierName: formData.supplierName || undefined,
-                supplierLocation: formData.supplierLocation || undefined,
-                supplierCertification: formData.supplierCertification || undefined,
+                supplierName: cleanString(formData.supplierName),
+                supplierLocation: cleanString(formData.supplierLocation),
+                supplierCertification: cleanString(formData.supplierCertification),
                 // Return policy
-                returnPolicy: formData.returnPolicy || undefined,
+                returnPolicy: cleanString(formData.returnPolicy),
                 returnDays: formData.returnDays ? parseInt(formData.returnDays) : undefined,
                 // Relations
-                brandId: formData.brandId || undefined,
+                brandId: cleanString(formData.brandId),
                 tagIds: formData.tagIds.length > 0 ? formData.tagIds : undefined,
-                attributes: formData.specifications.length > 0 ? formData.specifications : undefined,
+                attributes: formData.specifications.length > 0 
+                    ? formData.specifications.filter(spec => spec.key.trim() && spec.value.trim())
+                    : undefined,
             };
 
             let response;
@@ -744,9 +796,25 @@ export default function ProductManagement() {
             } else {
                 toast.error(response.error || "Failed to save product");
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error saving product:", error);
-            toast.error("An error occurred while saving the product");
+            
+            // Provide more specific error messages
+            if (error instanceof Error) {
+                if (error.message.includes('CSRF')) {
+                    toast.error("Security validation failed. Please refresh the page and try again.");
+                } else if (error.message.includes('slug')) {
+                    toast.error("A product with this slug already exists. Please change the product name.");
+                } else if (error.message.includes('SKU')) {
+                    toast.error("A product with this SKU already exists. Please use a different SKU.");
+                } else if (error.message.includes('validation')) {
+                    toast.error(`Validation error: ${error.message}`);
+                } else {
+                    toast.error(error.message || "An error occurred while saving the product");
+                }
+            } else {
+                toast.error("An error occurred while saving the product");
+            }
         } finally {
             setSubmitting(false);
         }
@@ -1189,14 +1257,14 @@ export default function ProductManagement() {
                             <div>
                                 <Label htmlFor="brandId">Brand</Label>
                                 <Select
-                                    value={formData.brandId}
-                                    onValueChange={(value) => setFormData(prev => ({ ...prev, brandId: value }))}
+                                    value={formData.brandId || "none"}
+                                    onValueChange={(value) => setFormData(prev => ({ ...prev, brandId: value === "none" ? "" : value }))}
                                 >
                                     <SelectTrigger id="brandId">
                                         <SelectValue placeholder="Select a brand (optional)" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="">None</SelectItem>
+                                        <SelectItem value="none">None</SelectItem>
                                         {brands.map((brand) => (
                                             <SelectItem key={brand.id} value={brand.id}>
                                                 {brand.name}

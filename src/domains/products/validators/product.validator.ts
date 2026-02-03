@@ -13,43 +13,43 @@ const dimensionsSchema = z.object({
   unit: z.string().optional(),
 }).optional().nullable();
 
-export const createProductSchema = z.object({
+const baseProductSchema = z.object({
   name: z.string().min(1, 'Product name is required'),
   slug: z.string().min(1, 'Slug is required'),
-  sku: z.string().optional(),
-  description: z.string().optional(),
+  sku: z.string().optional().or(z.literal('')),
+  description: z.string().optional().or(z.literal('')),
   price: z.number().positive('Price must be positive'),
-  originalPrice: z.number().positive().optional(),
+  originalPrice: z.number().positive().optional().nullable(),
   image: z.string().url('Image must be a valid URL'),
   images: z.array(z.string().url()).optional().default([]),
-  category: z.string().optional(), // Legacy: kept for backward compatibility
-  categoryId: z.string().optional(), // New: FK to Category
+  category: z.string().optional().or(z.literal('')), // Legacy: kept for backward compatibility
+  categoryId: z.string().optional().or(z.literal('')), // New: FK to Category
   status: productStatusSchema.default('DRAFT'),
   inStock: z.boolean().default(true),
   stockQuantity: z.number().int().min(0).default(0),
   
   // SEO fields
-  metaTitle: z.string().optional(),
-  metaDescription: z.string().optional(),
+  metaTitle: z.string().optional().or(z.literal('')),
+  metaDescription: z.string().optional().or(z.literal('')),
   metaKeywords: z.array(z.string()).optional().default([]),
-  ogImage: z.string().url().optional(),
+  ogImage: z.union([z.string().url(), z.literal('')]).optional(),
   
   // Physical attributes
-  weight: z.number().positive().optional(),
+  weight: z.number().positive().optional().nullable(),
   dimensions: dimensionsSchema,
   taxClass: z.string().optional().default('standard'),
   
   // Supplier information
-  supplierName: z.string().optional(),
-  supplierLocation: z.string().optional(),
-  supplierCertification: z.string().optional(),
+  supplierName: z.string().optional().or(z.literal('')),
+  supplierLocation: z.string().optional().or(z.literal('')),
+  supplierCertification: z.string().optional().or(z.literal('')),
   
   // Return policy
-  returnPolicy: z.string().optional(),
-  returnDays: z.number().int().min(0).optional(),
+  returnPolicy: z.string().optional().or(z.literal('')),
+  returnDays: z.number().int().min(0).optional().nullable(),
   
   // Relations
-  brandId: z.string().optional(),
+  brandId: z.string().optional().or(z.literal('')),
   tagIds: z.array(z.string()).optional().default([]),
   attributes: z.array(z.object({
     key: z.string().min(1),
@@ -57,7 +57,29 @@ export const createProductSchema = z.object({
   })).optional().default([]),
 });
 
-export const updateProductSchema = createProductSchema.partial();
+export const createProductSchema = baseProductSchema.transform((data) => {
+  // Transform empty strings to undefined for optional fields
+  return {
+    ...data,
+    sku: data.sku === '' ? undefined : data.sku,
+    description: data.description === '' ? undefined : data.description,
+    originalPrice: data.originalPrice === null ? undefined : data.originalPrice,
+    category: data.category === '' ? undefined : data.category,
+    categoryId: data.categoryId === '' ? undefined : data.categoryId,
+    metaTitle: data.metaTitle === '' ? undefined : data.metaTitle,
+    metaDescription: data.metaDescription === '' ? undefined : data.metaDescription,
+    ogImage: data.ogImage === '' ? undefined : data.ogImage,
+    weight: data.weight === null ? undefined : data.weight,
+    supplierName: data.supplierName === '' ? undefined : data.supplierName,
+    supplierLocation: data.supplierLocation === '' ? undefined : data.supplierLocation,
+    supplierCertification: data.supplierCertification === '' ? undefined : data.supplierCertification,
+    returnPolicy: data.returnPolicy === '' ? undefined : data.returnPolicy,
+    returnDays: data.returnDays === null ? undefined : data.returnDays,
+    brandId: data.brandId === '' ? undefined : data.brandId,
+  };
+});
+
+export const updateProductSchema = baseProductSchema.partial();
 
 export type CreateProductInput = z.infer<typeof createProductSchema>;
 export type UpdateProductInput = z.infer<typeof updateProductSchema>;

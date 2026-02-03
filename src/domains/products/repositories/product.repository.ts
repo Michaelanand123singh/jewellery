@@ -3,7 +3,7 @@
  */
 
 import { prisma } from '@/src/infrastructure/database/prisma';
-import { Product, ProductFilters, ProductSort, PaginationParams } from '../types/product.types';
+import { Product, ProductFilters, ProductSort, PaginationParams, ProductDimensions } from '../types/product.types';
 
 export class ProductRepository {
   async findById(id: string): Promise<Product | null> {
@@ -105,11 +105,11 @@ export class ProductRepository {
     sku?: string;
     description?: string;
     price: number;
-    originalPrice?: number;
+    originalPrice?: number | null;
     image: string;
     images?: string[];
     category?: string;
-    categoryId?: string;
+    categoryId?: string | null;
     status?: string;
     inStock?: boolean;
     stockQuantity?: number;
@@ -117,15 +117,15 @@ export class ProductRepository {
     metaDescription?: string;
     metaKeywords?: string[];
     ogImage?: string;
-    weight?: number;
-    dimensions?: any;
+    weight?: number | null;
+    dimensions?: ProductDimensions | null;
     taxClass?: string;
     supplierName?: string;
     supplierLocation?: string;
     supplierCertification?: string;
     returnPolicy?: string;
-    returnDays?: number;
-    brandId?: string;
+    returnDays?: number | null;
+    brandId?: string | null;
     tagIds?: string[];
     attributes?: Array<{ key: string; value: string }>;
   }): Promise<Product> {
@@ -159,6 +159,12 @@ export class ProductRepository {
   async update(id: string, data: Partial<Product> & {
     tagIds?: string[];
     attributes?: Array<{ key: string; value: string }>;
+    originalPrice?: number | null;
+    weight?: number | null;
+    returnDays?: number | null;
+    categoryId?: string | null;
+    brandId?: string | null;
+    dimensions?: ProductDimensions | null;
   }): Promise<Product> {
     const { tagIds, attributes, categoryId, ...productData } = data;
     
@@ -194,10 +200,27 @@ export class ProductRepository {
       }
     }
     
-    // Prepare update data with categoryId handling
+    // Prepare update data - preserve null values explicitly
     const updateData: any = { ...productData };
+    
+    // Handle nullable fields - explicitly set null if provided
     if (categoryId !== undefined) {
-      updateData.categoryId = categoryId || null;
+      updateData.categoryId = categoryId;
+    }
+    if ('originalPrice' in data) {
+      updateData.originalPrice = data.originalPrice;
+    }
+    if ('weight' in data) {
+      updateData.weight = data.weight;
+    }
+    if ('returnDays' in data) {
+      updateData.returnDays = data.returnDays;
+    }
+    if ('brandId' in data) {
+      updateData.brandId = data.brandId;
+    }
+    if ('dimensions' in data) {
+      updateData.dimensions = data.dimensions;
     }
     
     return prisma.product.update({
