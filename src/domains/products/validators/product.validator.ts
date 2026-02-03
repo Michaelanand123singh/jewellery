@@ -20,8 +20,21 @@ const baseProductSchema = z.object({
   description: z.string().optional().or(z.literal('')),
   price: z.number().positive('Price must be positive'),
   originalPrice: z.number().positive().optional().nullable(),
-  image: z.string().url('Image must be a valid URL'),
-  images: z.array(z.string().url()).optional().default([]),
+  image: z.string().min(1, 'Image is required').refine(
+    (val) => {
+      // Accept full URLs or relative paths starting with /
+      return val.startsWith('http://') || val.startsWith('https://') || val.startsWith('/');
+    },
+    { message: 'Image must be a valid URL or relative path starting with /' }
+  ),
+  images: z.array(
+    z.string().refine(
+      (val) => {
+        return val.startsWith('http://') || val.startsWith('https://') || val.startsWith('/');
+      },
+      { message: 'Image must be a valid URL or relative path starting with /' }
+    )
+  ).optional().default([]),
   category: z.string().optional().or(z.literal('')), // Legacy: kept for backward compatibility
   categoryId: z.string().optional().or(z.literal('')), // New: FK to Category
   status: productStatusSchema.default('DRAFT'),
@@ -32,7 +45,15 @@ const baseProductSchema = z.object({
   metaTitle: z.string().optional().or(z.literal('')),
   metaDescription: z.string().optional().or(z.literal('')),
   metaKeywords: z.array(z.string()).optional().default([]),
-  ogImage: z.union([z.string().url(), z.literal('')]).optional(),
+  ogImage: z.union([
+    z.string().refine(
+      (val) => {
+        return val.startsWith('http://') || val.startsWith('https://') || val.startsWith('/');
+      },
+      { message: 'OG Image must be a valid URL or relative path starting with /' }
+    ),
+    z.literal('')
+  ]).optional(),
   
   // Physical attributes
   weight: z.number().positive().optional().nullable(),

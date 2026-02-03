@@ -30,7 +30,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Plus, Trash2, Edit, Package, Upload, X, Image as ImageIcon, Copy, Download, FileUp } from "lucide-react";
+import { Plus, Trash2, Edit, Package, Upload, X, Image as ImageIcon, Copy, Download, FileUp, FileText } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
 import {
     Select,
@@ -897,6 +897,42 @@ export default function ProductManagement() {
         }
     };
 
+    const handleDownloadSample = async () => {
+        try {
+            const response = await fetch("/api/v1/products/import/sample", {
+                method: "GET",
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                toast.error(error.error || "Failed to download sample file");
+                return;
+            }
+
+            // Get filename from Content-Disposition header or use default
+            const contentDisposition = response.headers.get("Content-Disposition");
+            const filename = contentDisposition
+                ? contentDisposition.split("filename=")[1]?.replace(/"/g, "") || "product-import-sample.csv"
+                : "product-import-sample.csv";
+
+            // Download file
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
+            toast.success("Sample CSV file downloaded successfully");
+        } catch (error) {
+            console.error("Error downloading sample file:", error);
+            toast.error("An error occurred while downloading sample file");
+        }
+    };
+
     const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -938,18 +974,90 @@ export default function ProductManagement() {
 
             const data = await response.json();
 
+            // Log full response for debugging
+            console.log("Import response:", {
+                status: response.status,
+                success: data.success,
+                imported: data.data?.imported || data.imported || 0,
+                failed: data.data?.failed || data.failed || 0,
+                totalErrors: (data.data?.errors || data.errors || []).length,
+            });
+
             if (response.ok && data.success) {
                 toast.success(
                     `Imported ${data.data.imported} product(s) successfully${data.data.failed > 0 ? ` (${data.data.failed} failed)` : ''}`
                 );
                 if (data.data.errors && data.data.errors.length > 0) {
                     console.warn("Import errors:", data.data.errors);
+                    // Show detailed error message if there are errors
+                    const errorSummary = data.data.errors.slice(0, 5).map((err: any) => 
+                        `Row ${err.row}${err.productName ? ` (${err.productName})` : ''}: ${err.error}`
+                    ).join('\n');
+                    if (data.data.errors.length > 5) {
+                        toast.warning(`${data.data.errors.length} errors occurred. First 5:\n${errorSummary}`, {
+                            duration: 10000,
+                        });
+                    } else {
+                        toast.warning(`Some errors occurred:\n${errorSummary}`, {
+                            duration: 10000,
+                        });
+                    }
                 }
                 fetchProducts();
             } else {
-                toast.error(data.error || "Failed to import products");
-                if (data.errors && data.errors.length > 0) {
-                    console.error("Import errors:", data.errors);
+                // Handle both 400 errors and other errors
+                const errorMessage = data.error || data.message || "Failed to import products";
+                const errors = data.errors || data.data?.errors || [];
+                
+                console.error("Import failed:", {
+                    error: errorMessage,
+                    totalErrors: errors.length,
+                    sampleErrors: errors.slice(0, 3),
+                });
+
+                // Show main error
+                toast.error(errorMessage, {
+                    duration: 8000,
+                });
+
+                // Show detailed errors if available
+                if (errors.length > 0) {
+                    console.error("All import errors:", errors);
+                    
+                    // Group errors by type for better understanding
+                    const errorGroups = errors.reduce((acc: any, err: any) => {
+                        const errorType = err.error?.split(':')[0] || 'Unknown';
+                        if (!acc[errorType]) {
+                            acc[errorType] = [];
+                        }
+                        acc[errorType].push(err);
+                        return acc;
+                    }, {});
+
+                    // Show error summary
+                    const errorSummary = errors.slice(0, 10).map((err: any) => 
+                        `Row ${err.row}${err.productName ? ` (${err.productName})` : ''}: ${err.error}`
+                    ).join('\n');
+                    
+                    if (errors.length > 10) {
+                        toast.error(`\n${errors.length} total errors. First 10:\n${errorSummary}`, {
+                            duration: 20000,
+                        });
+                    } else {
+                        toast.error(`\nErrors:\n${errorSummary}`, {
+                            duration: 20000,
+                        });
+                    }
+
+                    // Log error groups for debugging
+                    console.group("Error Analysis");
+                    Object.entries(errorGroups).forEach(([type, errs]: [string, any]) => {
+                        console.log(`${type}: ${errs.length} occurrences`);
+                        if (errs.length <= 5) {
+                            console.log(errs);
+                        }
+                    });
+                    console.groupEnd();
                 }
             }
         } catch (error) {
@@ -1045,6 +1153,13 @@ export default function ProductManagement() {
                             </CardDescription>
                         </div>
                         <div className="flex gap-2">
+                            <Button
+                                variant="outline"
+                                onClick={handleDownloadSample}
+                            >
+                                <FileText className="h-4 w-4 mr-2" />
+                                Download Sample CSV
+                            </Button>
                             <Button
                                 variant="outline"
                                 onClick={handleExport}
