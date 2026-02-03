@@ -33,7 +33,7 @@ export function getCsrfTokenFromRequest(request: NextRequest): string | null {
   const headerToken = request.headers.get('x-csrf-token');
   if (headerToken) return headerToken;
 
-  // Check cookie for server-side rendering
+  // Check cookie for server-side rendering and FormData submissions
   const cookieToken = request.cookies.get('csrf-token')?.value;
   if (cookieToken) return cookieToken;
 

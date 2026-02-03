@@ -94,8 +94,14 @@ export async function POST(request: NextRequest) {
       validatedData.description = sanitizeHtml(validatedData.description);
     }
 
+    // Convert null to undefined for dimensions to match CreateProductData type
+    const createData = {
+      ...validatedData,
+      dimensions: validatedData.dimensions === null ? undefined : validatedData.dimensions,
+    };
+
     const productService = new ProductService();
-    const product = await productService.createProduct(validatedData);
+    const product = await productService.createProduct(createData);
 
     return NextResponse.json({
       success: true,
