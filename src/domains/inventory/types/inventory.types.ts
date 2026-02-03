@@ -8,12 +8,19 @@ export type StockMovementType = 'IN' | 'OUT' | 'ADJUSTMENT' | 'RETURN' | 'TRANSF
 export interface StockMovement {
   id: string;
   productId: string;
+  variantId?: string | null;
   product?: {
     id: string;
     name: string;
     slug: string;
     image: string;
     category: string;
+  };
+  variant?: {
+    id: string;
+    sku: string;
+    name: string;
+    stockQuantity: number;
   };
   type: StockMovementType;
   quantity: number; // Positive for additions, negative for deductions
@@ -28,6 +35,7 @@ export interface StockMovement {
 
 export interface CreateStockMovementData {
   productId: string;
+  variantId?: string | null;
   type: StockMovementType;
   quantity: number;
   reason?: string;

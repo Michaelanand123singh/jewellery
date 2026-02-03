@@ -34,6 +34,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // PHASE 6: Reject password login for Google users
+    if (user.provider === 'google') {
+      logger.security('Failed login attempt - Google user tried password login', { 
+        email: validatedData.email, 
+        userId: user.id, 
+        ip 
+      });
+      return NextResponse.json(
+        { success: false, error: 'This account uses Google login. Please sign in with Google.' },
+        { status: 401 }
+      );
+    }
+
+    // Verify password exists
+    if (!user.password) {
+      logger.security('Failed login attempt - no password set', { email: validatedData.email, userId: user.id, ip });
+      return NextResponse.json(
+        { success: false, error: 'Invalid email or password' },
+        { status: 401 }
+      );
+    }
+
     // Verify password
     const isValidPassword = await bcrypt.compare(
       validatedData.password,
@@ -51,7 +73,12 @@ export async function POST(request: NextRequest) {
     logger.info('User logged in successfully', { userId: user.id, email: user.email, ip });
 
     // Generate token
-    const token = generateToken({ userId: user.id, email: user.email, role: user.role });
+    const token = generateToken({ 
+      userId: user.id, 
+      email: user.email, 
+      role: user.role,
+      provider: user.provider || 'local',
+    });
 
     // Set cookie
     const cookieStore = await cookies();

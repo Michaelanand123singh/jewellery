@@ -21,8 +21,19 @@ export class CartRepository {
             stockQuantity: true,
           },
         },
-      },
-    }) as Promise<CartItem[]>;
+        variant: {
+          select: {
+            id: true,
+            sku: true,
+            name: true,
+            price: true,
+            stockQuantity: true,
+            attributes: true,
+            image: true,
+          },
+        },
+      } as any,
+    }) as unknown as Promise<CartItem[]>;
   }
 
   async findByUserAndProduct(userId: string, productId: string, variantId?: string | null): Promise<CartItem | null> {
@@ -33,7 +44,7 @@ export class CartRepository {
         userId,
         productId,
         variantId: variantId !== undefined ? variantId : null,
-      },
+      } as any,
       include: {
         product: {
           select: {
@@ -46,11 +57,22 @@ export class CartRepository {
             stockQuantity: true,
           },
         },
-      },
-    }) as Promise<CartItem | null>;
+        variant: {
+          select: {
+            id: true,
+            sku: true,
+            name: true,
+            price: true,
+            stockQuantity: true,
+            attributes: true,
+            image: true,
+          },
+        },
+      } as any,
+    }) as unknown as Promise<CartItem | null>;
   }
 
-  async create(data: { userId: string; productId: string; quantity: number }): Promise<CartItem> {
+  async create(data: { userId: string; productId: string; variantId?: string | null; quantity: number }): Promise<CartItem> {
     return prisma.cartItem.create({
       data,
       include: {
@@ -65,8 +87,19 @@ export class CartRepository {
             stockQuantity: true,
           },
         },
-      },
-    }) as Promise<CartItem>;
+        variant: {
+          select: {
+            id: true,
+            sku: true,
+            name: true,
+            price: true,
+            stockQuantity: true,
+            attributes: true,
+            image: true,
+          },
+        },
+      } as any,
+    }) as unknown as Promise<CartItem>;
   }
 
   async update(
@@ -88,8 +121,19 @@ export class CartRepository {
             stockQuantity: true,
           },
         },
-      },
-    }) as Promise<CartItem>;
+        variant: {
+          select: {
+            id: true,
+            sku: true,
+            name: true,
+            price: true,
+            stockQuantity: true,
+            attributes: true,
+            image: true,
+          },
+        },
+      } as any,
+    }) as unknown as Promise<CartItem>;
   }
 
   async findById(id: string): Promise<CartItem | null> {
@@ -107,8 +151,19 @@ export class CartRepository {
             stockQuantity: true,
           },
         },
-      },
-    }) as Promise<CartItem | null>;
+        variant: {
+          select: {
+            id: true,
+            sku: true,
+            name: true,
+            price: true,
+            stockQuantity: true,
+            attributes: true,
+            image: true,
+          },
+        },
+      } as any,
+    }) as unknown as Promise<CartItem | null>;
   }
 
   async delete(id: string): Promise<void> {

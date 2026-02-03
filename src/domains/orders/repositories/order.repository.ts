@@ -100,7 +100,7 @@ export class OrderRepository {
     shipping: number;
     tax: number;
     total: number;
-    orderItems: Array<{ productId: string; quantity: number; price: number }>;
+    orderItems: Array<{ productId: string; variantId?: string | null; quantity: number; price: number }>;
   }): Promise<Order> {
     return prisma.order.create({
       data: {
@@ -141,6 +141,33 @@ export class OrderRepository {
       data: {
         status: data.status,
         paymentStatus: data.paymentStatus,
+      },
+      include: {
+        orderItems: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                name: true,
+                image: true,
+                price: true,
+              },
+            },
+          },
+        },
+        address: true,
+      },
+    }) as Promise<Order>;
+  }
+
+  async update(id: string, data: Partial<Order>): Promise<Order> {
+    return prisma.order.update({
+      where: { id },
+      data: {
+        status: data.status as any,
+        paymentStatus: data.paymentStatus as any,
+        paymentId: data.paymentId,
+        notes: data.notes,
       },
       include: {
         orderItems: {

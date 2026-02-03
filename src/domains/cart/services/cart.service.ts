@@ -4,16 +4,19 @@
 
 import { CartRepository } from '../repositories/cart.repository';
 import { ProductRepository } from '@/src/domains/products/repositories/product.repository';
+import { ProductVariantRepository } from '@/src/domains/products/repositories/variant.repository';
 import { CartItem, AddToCartData, UpdateCartItemData } from '../types/cart.types';
 import { NotFoundError, ValidationError } from '@/src/shared/utils/errors';
 
 export class CartService {
   private cartRepository: CartRepository;
   private productRepository: ProductRepository;
+  private variantRepository: ProductVariantRepository;
 
   constructor() {
     this.cartRepository = new CartRepository();
     this.productRepository = new ProductRepository();
+    this.variantRepository = new ProductVariantRepository();
   }
 
   async getCart(userId: string): Promise<CartItem[]> {
@@ -21,12 +24,58 @@ export class CartService {
   }
 
   async addToCart(data: AddToCartData): Promise<CartItem> {
-    // Verify product exists and is in stock
+    // Verify product exists
     const product = await this.productRepository.findById(data.productId);
     if (!product) {
       throw new NotFoundError('Product');
     }
 
+    // If variant is specified, check variant stock
+    if (data.variantId) {
+      const variant = await this.variantRepository.findById(data.variantId);
+      if (!variant) {
+        throw new NotFoundError('Product variant');
+      }
+
+      if (variant.productId !== data.productId) {
+        throw new ValidationError('Variant does not belong to this product');
+      }
+
+      if (variant.stockQuantity < data.quantity) {
+        throw new ValidationError(
+          `Only ${variant.stockQuantity} items available for ${variant.name}`
+        );
+      }
+
+      // Check if item already in cart (with same variant)
+      const existingItem = await this.cartRepository.findByUserAndProduct(
+        data.userId,
+        data.productId,
+        data.variantId
+      );
+
+      if (existingItem) {
+        const newQuantity = existingItem.quantity + data.quantity;
+        
+        if (variant.stockQuantity < newQuantity) {
+          throw new ValidationError(
+            `Only ${variant.stockQuantity} items available. You already have ${existingItem.quantity} in cart.`
+          );
+        }
+
+        return this.cartRepository.update(existingItem.id, { quantity: newQuantity });
+      }
+
+      // Create new cart item with variant
+      return this.cartRepository.create({
+        userId: data.userId,
+        productId: data.productId,
+        variantId: data.variantId,
+        quantity: data.quantity,
+      });
+    }
+
+    // No variant - check product stock
     if (!product.inStock) {
       throw new ValidationError('Product is out of stock');
     }
@@ -37,14 +86,14 @@ export class CartService {
       );
     }
 
-    // Check if item already in cart
+    // Check if item already in cart (without variant)
     const existingItem = await this.cartRepository.findByUserAndProduct(
       data.userId,
-      data.productId
+      data.productId,
+      null
     );
 
     if (existingItem) {
-      // Update quantity
       const newQuantity = existingItem.quantity + data.quantity;
       
       if (product.stockQuantity < newQuantity) {
@@ -56,10 +105,11 @@ export class CartService {
       return this.cartRepository.update(existingItem.id, { quantity: newQuantity });
     }
 
-    // Create new cart item
+    // Create new cart item without variant
     return this.cartRepository.create({
       userId: data.userId,
       productId: data.productId,
+      variantId: null,
       quantity: data.quantity,
     });
   }
@@ -79,12 +129,20 @@ export class CartService {
       throw new ValidationError('Quantity must be greater than 0');
     }
 
-    // Check stock availability
-    const product = item.product;
-    if (product.stockQuantity < data.quantity) {
-      throw new ValidationError(
-        `Only ${product.stockQuantity} items available`
-      );
+    // Check stock availability - prioritize variant stock if variant exists
+    if (item.variantId && item.variant) {
+      if (item.variant.stockQuantity < data.quantity) {
+        throw new ValidationError(
+          `Only ${item.variant.stockQuantity} items available for ${item.variant.name}`
+        );
+      }
+    } else {
+      const product = item.product;
+      if (product.stockQuantity < data.quantity) {
+        throw new ValidationError(
+          `Only ${product.stockQuantity} items available`
+        );
+      }
     }
 
     return this.cartRepository.update(itemId, data);

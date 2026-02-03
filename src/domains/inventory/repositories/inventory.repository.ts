@@ -16,27 +16,47 @@ import {
 
 export class InventoryRepository {
   async createStockMovement(data: CreateStockMovementData): Promise<StockMovement> {
-    // Get current product stock
-    const product = await prisma.product.findUnique({
-      where: { id: data.productId },
-    });
-
-    if (!product) {
-      throw new Error('Product not found');
-    }
-
-    const previousStock = product.stockQuantity;
-    
-    // Calculate new stock based on movement type
-    let newStock = previousStock;
+    let previousStock: number;
+    let newStock: number;
     let quantity = data.quantity;
 
+    // If variantId provided, work with variant stock
+    if (data.variantId) {
+      const variant = await prisma.productVariant.findUnique({
+        where: { id: data.variantId },
+      });
+
+      if (!variant) {
+        throw new Error('Product variant not found');
+      }
+
+      if (variant.productId !== data.productId) {
+        throw new Error('Variant does not belong to this product');
+      }
+
+      previousStock = variant.stockQuantity;
+    } else {
+      // Work with product stock
+      const product = await prisma.product.findUnique({
+        where: { id: data.productId },
+      });
+
+      if (!product) {
+        throw new Error('Product not found');
+      }
+
+      previousStock = product.stockQuantity;
+    }
+    
+    // Calculate new stock based on movement type
     if (data.type === 'IN' || data.type === 'RETURN') {
       newStock = previousStock + quantity;
     } else if (data.type === 'OUT' || data.type === 'ADJUSTMENT') {
       // For OUT and ADJUSTMENT, quantity should be positive but will be stored as negative
       newStock = previousStock - quantity;
       quantity = -quantity; // Store as negative for OUT movements
+    } else {
+      newStock = previousStock;
     }
 
     // Ensure stock doesn't go negative (unless it's an adjustment)
@@ -44,12 +64,13 @@ export class InventoryRepository {
       throw new Error('Insufficient stock');
     }
 
-    // Create stock movement and update product in a transaction
+    // Create stock movement and update stock in a transaction
     const result = await prisma.$transaction(async (tx) => {
       // Create stock movement
       const movement = await tx.stockMovement.create({
         data: {
           productId: data.productId,
+          variantId: data.variantId || null,
           type: data.type,
           quantity,
           previousStock,
@@ -69,22 +90,57 @@ export class InventoryRepository {
               category: true,
             },
           },
+          variant: data.variantId ? {
+            select: {
+              id: true,
+              sku: true,
+              name: true,
+              stockQuantity: true,
+            },
+          } : undefined,
         },
       });
 
-      // Update product stock
-      await tx.product.update({
-        where: { id: data.productId },
-        data: {
-          stockQuantity: newStock,
-          inStock: newStock > 0,
-        },
-      });
+      // Update variant stock if variantId provided
+      if (data.variantId) {
+        await tx.productVariant.update({
+          where: { id: data.variantId },
+          data: {
+            stockQuantity: newStock,
+          },
+        });
+
+        // Sync product stock from sum of all variants
+        const allVariants = await tx.productVariant.findMany({
+          where: { productId: data.productId },
+        });
+        const totalVariantStock = allVariants.reduce(
+          (sum, v) => sum + v.stockQuantity,
+          0
+        );
+
+        await tx.product.update({
+          where: { id: data.productId },
+          data: {
+            stockQuantity: totalVariantStock,
+            inStock: totalVariantStock > 0,
+          },
+        });
+      } else {
+        // Update product stock directly
+        await tx.product.update({
+          where: { id: data.productId },
+          data: {
+            stockQuantity: newStock,
+            inStock: newStock > 0,
+          },
+        });
+      }
 
       return movement;
     });
 
-    return result;
+    return result as unknown as StockMovement;
   }
 
   async findStockMovements(
