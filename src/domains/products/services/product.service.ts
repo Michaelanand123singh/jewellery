@@ -64,9 +64,20 @@ export class ProductService {
       throw new Error('Product with this slug already exists');
     }
 
+    // Check if SKU already exists (if provided)
+    if (data.sku) {
+      const { ProductVariantRepository } = await import('../repositories/variant.repository');
+      const variantRepo = new ProductVariantRepository();
+      const existingSku = await variantRepo.findBySku(data.sku);
+      if (existingSku) {
+        throw new Error('Product with this SKU already exists');
+      }
+    }
+
     return this.productRepository.create({
       ...data,
       slug,
+      status: data.status || 'DRAFT',
     });
   }
 
@@ -93,6 +104,34 @@ export class ProductService {
   async updateStock(id: string, quantity: number): Promise<Product> {
     await this.getProductById(id);
     return this.productRepository.updateStock(id, quantity);
+  }
+
+  async getAllProductsForExport(): Promise<Product[]> {
+    const { products } = await this.productRepository.findMany(
+      undefined,
+      undefined,
+      { limit: 10000, skip: 0 } // Large limit for export
+    );
+    return products;
+  }
+
+  async bulkCreateProducts(products: CreateProductData[]): Promise<{ success: Product[]; failed: Array<{ data: CreateProductData; error: string }> }> {
+    const success: Product[] = [];
+    const failed: Array<{ data: CreateProductData; error: string }> = [];
+
+    for (const productData of products) {
+      try {
+        const product = await this.createProduct(productData);
+        success.push(product);
+      } catch (error) {
+        failed.push({
+          data: productData,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    }
+
+    return { success, failed };
   }
 }
 

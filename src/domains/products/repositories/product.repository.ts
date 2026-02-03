@@ -9,13 +9,27 @@ export class ProductRepository {
   async findById(id: string): Promise<Product | null> {
     return prisma.product.findUnique({
       where: { id },
-    });
+      include: {
+        brand: true,
+        variants: true,
+        attributes: true,
+        tags: true,
+        categoryRef: true,
+      } as any,
+    }) as unknown as Product | null;
   }
 
   async findBySlug(slug: string): Promise<Product | null> {
     return prisma.product.findUnique({
       where: { slug },
-    });
+      include: {
+        brand: true,
+        variants: true,
+        attributes: true,
+        tags: true,
+        categoryRef: true,
+      } as any,
+    }) as unknown as Product | null;
   }
 
   async findMany(
@@ -71,35 +85,132 @@ export class ProductRepository {
         orderBy,
         skip,
         take,
+        include: {
+          brand: true,
+          variants: true,
+          attributes: true,
+          tags: true,
+          categoryRef: true,
+        } as any,
       }),
       prisma.product.count({ where }),
     ]);
 
-    return { products, total };
+    return { products: products as unknown as Product[], total };
   }
 
   async create(data: {
     name: string;
     slug: string;
+    sku?: string;
     description?: string;
     price: number;
     originalPrice?: number;
     image: string;
     images?: string[];
-    category: string;
-    inStock: boolean;
-    stockQuantity: number;
+    category?: string;
+    categoryId?: string;
+    status?: string;
+    inStock?: boolean;
+    stockQuantity?: number;
+    metaTitle?: string;
+    metaDescription?: string;
+    metaKeywords?: string[];
+    ogImage?: string;
+    weight?: number;
+    dimensions?: any;
+    taxClass?: string;
+    supplierName?: string;
+    supplierLocation?: string;
+    supplierCertification?: string;
+    returnPolicy?: string;
+    returnDays?: number;
+    brandId?: string;
+    tagIds?: string[];
+    attributes?: Array<{ key: string; value: string }>;
   }): Promise<Product> {
+    const { tagIds, attributes, categoryId, category, ...productData } = data;
+    
     return prisma.product.create({
-      data,
-    });
+      data: {
+        ...productData,
+        category: category || '', // Ensure category is always a string
+        categoryId: categoryId || null, // Explicitly set to null if undefined
+        status: (productData.status as any) || 'DRAFT',
+        inStock: productData.inStock ?? true,
+        stockQuantity: productData.stockQuantity ?? 0,
+        tags: tagIds ? {
+          connect: tagIds.map(id => ({ id })),
+        } : undefined,
+        attributes: attributes ? {
+          create: attributes,
+        } : undefined,
+      } as any,
+      include: {
+        brand: true,
+        variants: true,
+        attributes: true,
+        tags: true,
+        categoryRef: true,
+      } as any,
+    }) as unknown as Product;
   }
 
-  async update(id: string, data: Partial<Product>): Promise<Product> {
+  async update(id: string, data: Partial<Product> & {
+    tagIds?: string[];
+    attributes?: Array<{ key: string; value: string }>;
+  }): Promise<Product> {
+    const { tagIds, attributes, categoryId, ...productData } = data;
+    
+    // Handle tag updates
+    if (tagIds !== undefined) {
+      // Use set to replace all tags at once
+      await prisma.product.update({
+        where: { id },
+        data: {
+          tags: {
+            set: tagIds.map(tagId => ({ id: tagId })),
+          },
+        } as any,
+      });
+    }
+    
+    // Handle attribute updates
+    if (attributes !== undefined) {
+      // Delete existing attributes
+      await (prisma as any).productAttribute.deleteMany({
+        where: { productId: id },
+      });
+      
+      // Create new attributes
+      if (attributes.length > 0) {
+        await (prisma as any).productAttribute.createMany({
+          data: attributes.map(attr => ({
+            productId: id,
+            key: attr.key,
+            value: attr.value,
+          })),
+        });
+      }
+    }
+    
+    // Prepare update data with categoryId handling
+    const updateData: any = { ...productData };
+    if (categoryId !== undefined) {
+      updateData.categoryId = categoryId || null;
+    }
+    
     return prisma.product.update({
       where: { id },
-      data,
-    });
+      data: updateData,
+      include: {
+        brand: true,
+        variants: true,
+        attributes: true,
+        tags: true,
+        categoryRef: true,
+      } as any,
+    }) as unknown as Product;
   }
 
   async delete(id: string): Promise<void> {
@@ -120,7 +231,14 @@ export class ProductRepository {
         stockQuantity: quantity,
         inStock: quantity > 0,
       },
-    });
+      include: {
+        brand: true,
+        variants: true,
+        attributes: true,
+        tags: true,
+        categoryRef: true,
+      } as any,
+    }) as unknown as Product;
   }
 }
 

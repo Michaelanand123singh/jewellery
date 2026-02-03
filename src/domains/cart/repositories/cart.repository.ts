@@ -25,13 +25,14 @@ export class CartRepository {
     }) as Promise<CartItem[]>;
   }
 
-  async findByUserAndProduct(userId: string, productId: string): Promise<CartItem | null> {
-    return prisma.cartItem.findUnique({
+  async findByUserAndProduct(userId: string, productId: string, variantId?: string | null): Promise<CartItem | null> {
+    // Use findFirst because the unique constraint includes variantId
+    // If variantId is provided, match it; otherwise match items without variants
+    return prisma.cartItem.findFirst({
       where: {
-        userId_productId: {
-          userId,
-          productId,
-        },
+        userId,
+        productId,
+        variantId: variantId !== undefined ? variantId : null,
       },
       include: {
         product: {
