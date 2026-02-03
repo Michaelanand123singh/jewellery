@@ -87,14 +87,8 @@ export async function PUT(
       validatedData.description = sanitizeHtml(validatedData.description);
     }
 
-    // Convert null to undefined for dimensions to match UpdateProductData type
-    const updateData = {
-      ...validatedData,
-      dimensions: validatedData.dimensions === null ? undefined : validatedData.dimensions,
-    };
-
     const productService = new ProductService();
-    const product = await productService.updateProduct(id, updateData);
+    const product = await productService.updateProduct(id, validatedData);
 
     return NextResponse.json({
       success: true,

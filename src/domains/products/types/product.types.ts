@@ -66,11 +66,11 @@ export interface CreateProductData {
   sku?: string;
   description?: string;
   price: number;
-  originalPrice?: number;
+  originalPrice?: number | null;
   image: string;
   images?: string[];
   category?: string; // Legacy: kept for backward compatibility
-  categoryId?: string; // New: FK to Category
+  categoryId?: string | null; // New: FK to Category
   status?: ProductStatus;
   inStock?: boolean;
   stockQuantity?: number;
@@ -82,8 +82,8 @@ export interface CreateProductData {
   ogImage?: string;
   
   // Physical attributes
-  weight?: number;
-  dimensions?: ProductDimensions;
+  weight?: number | null;
+  dimensions?: ProductDimensions | null;
   taxClass?: string;
   
   // Supplier information
@@ -93,10 +93,10 @@ export interface CreateProductData {
   
   // Return policy
   returnPolicy?: string;
-  returnDays?: number;
+  returnDays?: number | null;
   
   // Relations
-  brandId?: string;
+  brandId?: string | null;
   tagIds?: string[];
   attributes?: Array<{ key: string; value: string }>;
 }
@@ -107,11 +107,11 @@ export interface UpdateProductData {
   sku?: string;
   description?: string;
   price?: number;
-  originalPrice?: number;
+  originalPrice?: number | null;
   image?: string;
   images?: string[];
   category?: string; // Legacy
-  categoryId?: string; // New
+  categoryId?: string | null; // New
   status?: ProductStatus;
   inStock?: boolean;
   stockQuantity?: number;
@@ -123,8 +123,8 @@ export interface UpdateProductData {
   ogImage?: string;
   
   // Physical attributes
-  weight?: number;
-  dimensions?: ProductDimensions;
+  weight?: number | null;
+  dimensions?: ProductDimensions | null;
   taxClass?: string;
   
   // Supplier information
@@ -134,10 +134,10 @@ export interface UpdateProductData {
   
   // Return policy
   returnPolicy?: string;
-  returnDays?: number;
+  returnDays?: number | null;
   
   // Relations
-  brandId?: string;
+  brandId?: string | null;
   tagIds?: string[];
   attributes?: Array<{ key: string; value: string }>;
 }
