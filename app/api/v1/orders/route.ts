@@ -26,12 +26,45 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20');
     const skip = (page - 1) * limit;
 
+    // Build filters
+    const filters: any = {};
+    if (searchParams.get('status')) {
+      filters.status = searchParams.get('status');
+    }
+    if (searchParams.get('paymentStatus')) {
+      filters.paymentStatus = searchParams.get('paymentStatus');
+    }
+    if (searchParams.get('paymentMethod')) {
+      filters.paymentMethod = searchParams.get('paymentMethod');
+    }
+    if (searchParams.get('startDate')) {
+      filters.startDate = new Date(searchParams.get('startDate')!);
+    }
+    if (searchParams.get('endDate')) {
+      filters.endDate = new Date(searchParams.get('endDate')!);
+    }
+    if (searchParams.get('search')) {
+      filters.search = searchParams.get('search');
+    }
+    if (searchParams.get('userId')) {
+      filters.userId = searchParams.get('userId');
+    }
+
+    // Build sort
+    const sort: any = {};
+    if (searchParams.get('sortBy')) {
+      sort.sortBy = searchParams.get('sortBy');
+    }
+    if (searchParams.get('sortOrder')) {
+      sort.sortOrder = searchParams.get('sortOrder');
+    }
+
     const orderService = new OrderService();
     
-    // Admin can see all orders, users see only their orders
+    // Admin can see all orders with filters, users see only their orders
     const isAdmin = user.role === 'ADMIN';
     const result = isAdmin
-      ? await orderService.getAllOrders({ page, limit, skip })
+      ? await orderService.getAllOrders(filters, sort, { page, limit, skip })
       : await orderService.getOrdersByUserId(user.id, { page, limit, skip });
 
     return NextResponse.json({
