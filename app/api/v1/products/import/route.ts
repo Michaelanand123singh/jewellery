@@ -12,6 +12,7 @@ import { parseCSV } from '@/src/shared/utils/csv';
 import { CreateProductData } from '@/src/domains/products/types/product.types';
 import { slugify } from '@/src/shared/utils/formatters';
 import { sanitizeHtml } from '@/lib/sanitize';
+import { createProductSchema } from '@/src/domains/products/validators/product.validator';
 
 interface CSVProductRow {
   Name: string;
@@ -122,7 +123,7 @@ export async function POST(request: NextRequest) {
 
     // Convert CSV rows to CreateProductData
     const productsToCreate: CreateProductData[] = [];
-    const errors: Array<{ row: number; error: string }> = [];
+    const errors: Array<{ row: number; error: string; productName?: string }> = [];
 
     for (let i = 0; i < csvRows.length; i++) {
       const row = csvRows[i];
@@ -230,6 +231,26 @@ export async function POST(request: NextRequest) {
           description = sanitizeHtml(description);
         }
 
+        // Normalize image paths - ensure relative paths start with /
+        let imageUrl = row['Main Image'].trim();
+        if (imageUrl && !imageUrl.startsWith('http://') && !imageUrl.startsWith('https://') && !imageUrl.startsWith('/')) {
+          imageUrl = '/' + imageUrl;
+        }
+
+        // Normalize additional images paths
+        const normalizedImages = images.map(img => {
+          if (img && !img.startsWith('http://') && !img.startsWith('https://') && !img.startsWith('/')) {
+            return '/' + img;
+          }
+          return img;
+        });
+
+        // Normalize OG image path if provided
+        let ogImageUrl = row['OG Image']?.trim();
+        if (ogImageUrl && !ogImageUrl.startsWith('http://') && !ogImageUrl.startsWith('https://') && !ogImageUrl.startsWith('/')) {
+          ogImageUrl = '/' + ogImageUrl;
+        }
+
         const productData: CreateProductData = {
           name: row.Name.trim(),
           slug,
@@ -237,8 +258,8 @@ export async function POST(request: NextRequest) {
           description: description || undefined,
           price,
           originalPrice,
-          image: row['Main Image'].trim(),
-          images: images.length > 0 ? images : undefined,
+          image: imageUrl,
+          images: normalizedImages.length > 0 ? normalizedImages : undefined,
           category: row.Category.trim(),
           status,
           inStock,
@@ -246,7 +267,7 @@ export async function POST(request: NextRequest) {
           metaTitle: row['Meta Title']?.trim() || undefined,
           metaDescription: row['Meta Description']?.trim() || undefined,
           metaKeywords: metaKeywords && metaKeywords.length > 0 ? metaKeywords : undefined,
-          ogImage: row['OG Image']?.trim() || undefined,
+          ogImage: ogImageUrl || undefined,
           weight,
           dimensions,
           taxClass: row['Tax Class']?.trim() || undefined,
@@ -258,35 +279,102 @@ export async function POST(request: NextRequest) {
           brandId: row['Brand ID']?.trim() || undefined,
         };
 
-        productsToCreate.push(productData);
+        // Validate product data with Zod schema
+        try {
+          const validatedData = createProductSchema.parse(productData);
+          productsToCreate.push(validatedData);
+        } catch (validationError: any) {
+          // Zod validation error - extract detailed error messages
+          let errorMessages = '';
+          if (validationError.errors && Array.isArray(validationError.errors)) {
+            errorMessages = validationError.errors.map((err: any) => {
+              const field = err.path && err.path.length > 0 ? err.path.join('.') : 'unknown';
+              return `${field}: ${err.message}`;
+            }).join('; ');
+          } else if (validationError.message) {
+            errorMessages = validationError.message;
+          } else {
+            errorMessages = 'Validation failed';
+          }
+          
+          // Log first few errors for debugging
+          if (errors.length < 3) {
+            logger.error('Product import validation error', {
+              row: rowNumber,
+              productName: row.Name,
+              errors: validationError.errors || validationError.message,
+            });
+          }
+          
+          errors.push({
+            row: rowNumber,
+            error: errorMessages,
+            productName: row.Name || 'Unknown',
+          });
+        }
       } catch (error) {
         errors.push({
           row: rowNumber,
           error: error instanceof Error ? error.message : 'Unknown error',
+          productName: row.Name || 'Unknown',
         });
       }
     }
 
-    if (productsToCreate.length === 0) {
+    // Bulk create products (even if some failed validation, try to import valid ones)
+    let result = { success: [] as any[], failed: [] as Array<{ data: CreateProductData; error: string }> };
+    
+    if (productsToCreate.length > 0) {
+      const productService = new ProductService();
+      result = await productService.bulkCreateProducts(productsToCreate);
+    }
+
+    // Combine validation errors with creation errors (normalize to consistent structure)
+    const allErrors: Array<{ row: number | string; error: string; productName?: string }> = [
+      ...errors,
+      ...result.failed.map(f => ({ 
+        row: 'N/A', 
+        error: f.error,
+        productName: f.data.name || 'Unknown'
+      }))
+    ];
+
+    // Log summary for debugging
+    logger.info('Product import completed', {
+      total: csvRows.length,
+      validated: productsToCreate.length,
+      imported: result.success.length,
+      failed: allErrors.length,
+    });
+
+    // If no products were successfully imported, return error with detailed info
+    if (result.success.length === 0) {
+      // Show sample errors in the main error message
+      const sampleErrors = allErrors.slice(0, 3).map(e => {
+        const productInfo = e.productName ? ` (${e.productName})` : '';
+        return `Row ${e.row}${productInfo}: ${e.error}`;
+      }).join('; ');
+      
       return NextResponse.json({
         success: false,
-        error: 'No valid products to import',
-        errors,
+        error: `No valid products to import. All ${csvRows.length} product(s) failed validation.`,
+        message: sampleErrors ? `Sample errors: ${sampleErrors}${allErrors.length > 3 ? ` ... and ${allErrors.length - 3} more` : ''}` : 'All products failed validation',
+        errors: allErrors,
+        total: csvRows.length,
+        imported: 0,
+        failed: allErrors.length,
       }, { status: 400 });
     }
 
-    // Bulk create products
-    const productService = new ProductService();
-    const result = await productService.bulkCreateProducts(productsToCreate);
-
+    // Return success with details about what was imported and what failed
     return NextResponse.json({
       success: true,
-      message: `Imported ${result.success.length} product(s) successfully`,
+      message: `Imported ${result.success.length} product(s) successfully${allErrors.length > 0 ? ` (${allErrors.length} failed)` : ''}`,
       data: {
         imported: result.success.length,
-        failed: result.failed.length,
-        total: productsToCreate.length,
-        errors: [...errors, ...result.failed.map(f => ({ row: 'N/A', error: f.error }))],
+        failed: allErrors.length,
+        total: csvRows.length,
+        errors: allErrors,
       },
     });
   } catch (error) {
