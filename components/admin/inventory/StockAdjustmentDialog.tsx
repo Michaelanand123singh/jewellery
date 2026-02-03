@@ -70,7 +70,7 @@ export function StockAdjustmentDialog({
       // Determine if it's an addition or subtraction
       const adjustmentQuantity = type === "IN" ? quantityNum : -quantityNum;
 
-      await apiClient.post("/api/v1/inventory/movements", {
+      await apiClient.post("/inventory/movements", {
         productId: product.id,
         quantity: adjustmentQuantity,
         reason: reason.trim(),
