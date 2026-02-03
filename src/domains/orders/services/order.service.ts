@@ -11,6 +11,8 @@ import {
   Order,
   CreateOrderData,
   UpdateOrderStatusData,
+  OrderFilters,
+  OrderSort,
 } from '../types/order.types';
 import { PaginationParams } from '@/src/shared/types/common.types';
 import { NotFoundError, ValidationError } from '@/src/shared/utils/errors';
@@ -59,9 +61,11 @@ export class OrderService {
   }
 
   async getAllOrders(
+    filters?: OrderFilters,
+    sort?: OrderSort,
     pagination?: PaginationParams
   ): Promise<{ orders: Order[]; total: number; totalPages: number }> {
-    const { orders, total } = await this.orderRepository.findAll(pagination);
+    const { orders, total } = await this.orderRepository.findAll(filters, sort, pagination);
     const limit = pagination?.limit ?? 20;
     const totalPages = Math.ceil(total / limit);
 

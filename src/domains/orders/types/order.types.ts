@@ -22,15 +22,27 @@ export interface Order {
   updatedAt: Date;
   orderItems: OrderItem[];
   address?: Address;
+  user?: {
+    id: string;
+    name: string | null;
+    email: string;
+    phone: string | null;
+  };
 }
 
 export interface OrderItem {
   id: string;
   orderId: string;
   productId: string;
+  variantId?: string | null;
   quantity: number;
   price: number;
   product?: Product;
+  variant?: {
+    id: string;
+    name: string;
+    sku: string;
+  };
 }
 
 export interface Product {
@@ -63,5 +75,20 @@ export interface CreateOrderData {
 export interface UpdateOrderStatusData {
   status?: OrderStatus;
   paymentStatus?: PaymentStatus;
+}
+
+export interface OrderFilters {
+  status?: OrderStatus;
+  paymentStatus?: PaymentStatus;
+  paymentMethod?: PaymentMethod;
+  startDate?: Date;
+  endDate?: Date;
+  search?: string; // Search by order ID, customer name, email, or product name
+  userId?: string;
+}
+
+export interface OrderSort {
+  sortBy?: 'createdAt' | 'total' | 'status' | 'paymentStatus';
+  sortOrder?: 'asc' | 'desc';
 }
 
