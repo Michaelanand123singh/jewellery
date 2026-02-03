@@ -87,7 +87,7 @@ export interface EmailSettings {
 export interface SEOSettings {
   siteTitle: string;
   siteDescription: string;
-  siteKeywords: string;
+  siteKeywords?: string;
   ogImage?: string;
   twitterHandle?: string;
   facebookUrl?: string;

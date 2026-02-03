@@ -4,7 +4,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GeneralSettings } from "./GeneralSettings";
 import { ProductSettings } from "./ProductSettings";
 import { CategoryManagement } from "./CategoryManagement";
-import { Settings, Package, FolderTree } from "lucide-react";
+import { ShippingSettings } from "./ShippingSettings";
+import { PaymentSettings } from "./PaymentSettings";
+import { EmailSettings } from "./EmailSettings";
+import { SEOSettings } from "./SEOSettings";
+import {
+  Settings,
+  Package,
+  FolderTree,
+  Truck,
+  CreditCard,
+  Mail,
+  Search,
+} from "lucide-react";
 
 export default function SettingsManagement() {
   return (
@@ -30,6 +42,22 @@ export default function SettingsManagement() {
             <FolderTree className="h-4 w-4" />
             <span className="hidden sm:inline">Categories</span>
           </TabsTrigger>
+          <TabsTrigger value="shipping" className="flex items-center gap-2">
+            <Truck className="h-4 w-4" />
+            <span className="hidden sm:inline">Shipping</span>
+          </TabsTrigger>
+          <TabsTrigger value="payment" className="flex items-center gap-2">
+            <CreditCard className="h-4 w-4" />
+            <span className="hidden sm:inline">Payment</span>
+          </TabsTrigger>
+          <TabsTrigger value="email" className="flex items-center gap-2">
+            <Mail className="h-4 w-4" />
+            <span className="hidden sm:inline">Email</span>
+          </TabsTrigger>
+          <TabsTrigger value="seo" className="flex items-center gap-2">
+            <Search className="h-4 w-4" />
+            <span className="hidden sm:inline">SEO</span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="general" className="space-y-4">
@@ -42,6 +70,22 @@ export default function SettingsManagement() {
 
         <TabsContent value="categories" className="space-y-4">
           <CategoryManagement />
+        </TabsContent>
+
+        <TabsContent value="shipping" className="space-y-4">
+          <ShippingSettings />
+        </TabsContent>
+
+        <TabsContent value="payment" className="space-y-4">
+          <PaymentSettings />
+        </TabsContent>
+
+        <TabsContent value="email" className="space-y-4">
+          <EmailSettings />
+        </TabsContent>
+
+        <TabsContent value="seo" className="space-y-4">
+          <SEOSettings />
         </TabsContent>
       </Tabs>
     </div>
