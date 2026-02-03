@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     // Hash password
     const hashedPassword = await bcrypt.hash(validatedData.password, 10);
 
-    // Create user
+    // Create user with local provider
     const user = await prisma.user.create({
       data: {
         email: validatedData.email,
@@ -47,6 +47,7 @@ export async function POST(request: NextRequest) {
         name: validatedData.name,
         phone: validatedData.phone,
         role: 'USER', // Default role
+        provider: 'local', // Local provider for email/password registration
       },
       select: {
         id: true,
@@ -58,7 +59,12 @@ export async function POST(request: NextRequest) {
     });
 
     // Generate token
-    const token = generateToken({ userId: user.id, email: user.email, role: user.role });
+    const token = generateToken({ 
+      userId: user.id, 
+      email: user.email, 
+      role: user.role,
+      provider: 'local',
+    });
 
     // Set cookie
     const cookieStore = await cookies();

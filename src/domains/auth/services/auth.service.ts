@@ -30,6 +30,26 @@ export class AuthService {
       throw new UnauthorizedError('Invalid email or password');
     }
 
+    // PHASE 6: Reject password login for Google users
+    if (user.provider === 'google') {
+      logger.security('Failed login attempt - Google user tried password login', {
+        email: credentials.email,
+        userId: user.id,
+        ip,
+      });
+      throw new UnauthorizedError('This account uses Google login. Please sign in with Google.');
+    }
+
+    // Verify password exists
+    if (!user.password) {
+      logger.security('Failed login attempt - no password set', {
+        email: credentials.email,
+        userId: user.id,
+        ip,
+      });
+      throw new UnauthorizedError('Invalid email or password');
+    }
+
     // Verify password
     const isValidPassword = await bcrypt.compare(
       credentials.password,
@@ -56,6 +76,7 @@ export class AuthService {
       userId: user.id,
       email: user.email,
       role: user.role,
+      provider: user.provider || 'local',
     });
 
     return {
@@ -83,13 +104,14 @@ export class AuthService {
     // Hash password
     const hashedPassword = await bcrypt.hash(data.password, 10);
 
-    // Create user
+    // Create user with local provider
     const user = await this.userRepository.create({
       email: data.email,
       password: hashedPassword,
       name: data.name,
       phone: data.phone,
       role: 'USER',
+      provider: 'local',
     });
 
     logger.info('User registered successfully', {
@@ -103,6 +125,7 @@ export class AuthService {
       userId: user.id,
       email: user.email,
       role: user.role,
+      provider: 'local',
     });
 
     return {

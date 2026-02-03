@@ -48,7 +48,7 @@ function getRateLimitKey(request: NextRequest): string {
   return `${ip}:${path}`;
 }
 
-function checkRateLimit(key: string): boolean {
+function checkRateLimit(key: string, maxRequests: number = RATE_LIMIT_MAX_REQUESTS): boolean {
   // Cleanup expired entries periodically (fixes Issue #10 and #2)
   cleanupExpiredEntries();
   
@@ -60,7 +60,7 @@ function checkRateLimit(key: string): boolean {
     return true;
   }
 
-  if (record.count >= RATE_LIMIT_MAX_REQUESTS) {
+  if (record.count >= maxRequests) {
     return false;
   }
 
@@ -96,9 +96,19 @@ export async function middleware(request: NextRequest) {
 
   // Apply rate limiting to API routes
   if (request.nextUrl.pathname.startsWith('/api')) {
+    const path = request.nextUrl.pathname;
+    
+    // PHASE 8: Stricter rate limiting for payment endpoints
+    let maxRequests = RATE_LIMIT_MAX_REQUESTS;
+    if (path.startsWith('/api/v1/payments')) {
+      maxRequests = 10; // 10 requests per minute for payment endpoints
+    } else if (path.startsWith('/api/webhooks/razorpay')) {
+      maxRequests = 30; // 30 requests per minute for webhooks (Razorpay can send multiple)
+    }
+    
     const rateLimitKey = getRateLimitKey(request);
     
-    if (!checkRateLimit(rateLimitKey)) {
+    if (!checkRateLimit(rateLimitKey, maxRequests)) {
       return NextResponse.json(
         { success: false, error: 'Too many requests. Please try again later.' },
         { 

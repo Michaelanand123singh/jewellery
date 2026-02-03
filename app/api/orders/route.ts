@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { OrderService } from '@/src/domains/orders/services/order.service';
+import { handleApiError } from '@/src/shared/middleware/error.middleware';
 import { z } from 'zod';
 
 // GET /api/orders - Get user's orders (or all orders for admin)

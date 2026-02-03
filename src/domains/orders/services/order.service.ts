@@ -4,6 +4,8 @@
 
 import { OrderRepository } from '../repositories/order.repository';
 import { ProductRepository } from '@/src/domains/products/repositories/product.repository';
+import { ProductVariantRepository } from '@/src/domains/products/repositories/variant.repository';
+import { InventoryRepository } from '@/src/domains/inventory/repositories/inventory.repository';
 import { CartRepository } from '@/src/domains/cart/repositories/cart.repository';
 import {
   Order,
@@ -19,11 +21,15 @@ import { prisma } from '@/src/infrastructure/database/prisma';
 export class OrderService {
   private orderRepository: OrderRepository;
   private productRepository: ProductRepository;
+  private variantRepository: ProductVariantRepository;
+  private inventoryRepository: InventoryRepository;
   private cartRepository: CartRepository;
 
   constructor() {
     this.orderRepository = new OrderRepository();
     this.productRepository = new ProductRepository();
+    this.variantRepository = new ProductVariantRepository();
+    this.inventoryRepository = new InventoryRepository();
     this.cartRepository = new CartRepository();
   }
 
@@ -72,25 +78,48 @@ export class OrderService {
 
     // Validate stock and calculate totals
     let subtotal = 0;
-    const orderItems: Array<{ productId: string; quantity: number; price: number }> = [];
+    const orderItems: Array<{ productId: string; variantId?: string | null; quantity: number; price: number }> = [];
 
     for (const item of cartItems) {
       const product = item.product;
       
-      if (!product.inStock || product.stockQuantity < item.quantity) {
-        throw new ValidationError(
-          `${product.name} is out of stock or insufficient quantity`
-        );
+      // If variant exists, check variant stock
+      if (item.variantId && item.variant) {
+        if (item.variant.stockQuantity < item.quantity) {
+          throw new ValidationError(
+            `${product.name} - ${item.variant.name} is out of stock or insufficient quantity`
+          );
+        }
+        
+        // Use variant price if available, otherwise product price
+        const price = item.variant.price ?? product.price;
+        const itemTotal = price * item.quantity;
+        subtotal += itemTotal;
+
+        orderItems.push({
+          productId: product.id,
+          variantId: item.variantId,
+          quantity: item.quantity,
+          price,
+        });
+      } else {
+        // No variant - check product stock
+        if (!product.inStock || product.stockQuantity < item.quantity) {
+          throw new ValidationError(
+            `${product.name} is out of stock or insufficient quantity`
+          );
+        }
+
+        const itemTotal = product.price * item.quantity;
+        subtotal += itemTotal;
+
+        orderItems.push({
+          productId: product.id,
+          variantId: null,
+          quantity: item.quantity,
+          price: product.price,
+        });
       }
-
-      const itemTotal = product.price * item.quantity;
-      subtotal += itemTotal;
-
-      orderItems.push({
-        productId: product.id,
-        quantity: item.quantity,
-        price: product.price,
-      });
     }
 
     // Calculate shipping and tax
@@ -133,19 +162,81 @@ export class OrderService {
         },
       });
 
-      // Update product stock
+      // Update stock - handle variants and products
       for (const item of cartItems) {
-        await tx.product.update({
-          where: { id: item.productId },
-          data: {
-            stockQuantity: {
-              decrement: item.quantity,
+        // If variant exists, deduct variant stock
+        if (item.variantId && item.variant) {
+          const previousVariantStock = item.variant.stockQuantity;
+          const newVariantStock = previousVariantStock - item.quantity;
+
+          // Update variant stock
+          await tx.productVariant.update({
+            where: { id: item.variantId },
+            data: {
+              stockQuantity: newVariantStock,
             },
-            inStock: {
-              set: item.product.stockQuantity - item.quantity > 0,
+          });
+
+          // Create stock movement for variant
+          await tx.stockMovement.create({
+            data: {
+              productId: item.productId,
+              variantId: item.variantId,
+              type: 'OUT',
+              quantity: -item.quantity, // Negative for OUT
+              previousStock: previousVariantStock,
+              newStock: newVariantStock,
+              reason: 'Order created',
+              referenceId: newOrder.id,
+              referenceType: 'ORDER',
             },
-          },
-        });
+          });
+
+          // Sync product stock from variants (sum of all variant stocks)
+          const allVariants = await tx.productVariant.findMany({
+            where: { productId: item.productId },
+          });
+          const totalVariantStock = allVariants.reduce(
+            (sum, v) => sum + v.stockQuantity,
+            0
+          );
+
+          // Update product stock to match sum of variants
+          await tx.product.update({
+            where: { id: item.productId },
+            data: {
+              stockQuantity: totalVariantStock,
+              inStock: totalVariantStock > 0,
+            },
+          });
+        } else {
+          // No variant - deduct product stock directly
+          const previousProductStock = item.product.stockQuantity;
+          const newProductStock = previousProductStock - item.quantity;
+
+          await tx.product.update({
+            where: { id: item.productId },
+            data: {
+              stockQuantity: newProductStock,
+              inStock: newProductStock > 0,
+            },
+          });
+
+          // Create stock movement for product
+          await tx.stockMovement.create({
+            data: {
+              productId: item.productId,
+              variantId: null,
+              type: 'OUT',
+              quantity: -item.quantity, // Negative for OUT
+              previousStock: previousProductStock,
+              newStock: newProductStock,
+              reason: 'Order created',
+              referenceId: newOrder.id,
+              referenceType: 'ORDER',
+            },
+          });
+        }
       }
 
       // Clear cart

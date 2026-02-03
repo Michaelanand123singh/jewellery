@@ -12,14 +12,16 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  password  String
-  phone     String?
-  role      String   @default("USER")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(cuid())
+  email      String   @unique
+  name       String?
+  password   String?  // Nullable for Google OAuth users
+  phone      String?
+  role       String   @default("USER")
+  provider   String   @default("local") // "local" | "google"
+  providerId String?  // Google sub ID for Google users
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   addresses     Address[]
   orders        Order[]
@@ -27,6 +29,7 @@ model User {
   wishlistItems WishlistItem[]
   reviews       Review[]
 
+  @@index([provider, providerId]) // Index for Google OAuth lookups
   @@map("users")
 }
 
@@ -169,6 +172,8 @@ model Order {
   updatedAt DateTime @updatedAt
 
   orderItems OrderItem[]
+  payment    Payment?
+  shipment   Shipment?
 
   @@map("orders")
 }
@@ -261,6 +266,208 @@ enum PaymentStatus {
   REFUNDED
 }
 
+// Payment model for Razorpay integration
+model Payment {
+  id            String        @id @default(cuid())
+  orderId       String        @unique
+  order         Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  // Razorpay fields
+  razorpayOrderId   String?  @unique // Razorpay order ID
+  razorpayPaymentId String?  @unique // Razorpay payment ID
+  razorpaySignature String?  // Webhook signature
+  
+  // Payment details
+  gateway       String        // 'razorpay' | 'cod'
+  amount        Float         // Amount in rupees (not paise)
+  currency      String        @default("INR")
+  status        PaymentStatus @default(PENDING)
+  
+  // Payment method details
+  method        String?       // 'card', 'netbanking', 'wallet', 'upi', 'cod'
+  bank          String?       // Bank name for netbanking
+  wallet        String?       // Wallet name
+  vpa           String?       // UPI VPA
+  
+  // Refund details
+  refundId      String?       // Razorpay refund ID (deprecated - use Refund model)
+  refundAmount  Float?        // Total refunded amount (sum of all refunds)
+  refundStatus  String?       // 'pending', 'processed', 'failed'
+  
+  // Metadata
+  metadata      Json?         // Additional payment data from Razorpay
+  failureReason String?       @db.Text // Reason for failure
+  
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Relations
+  refunds       Refund[]
+  auditLogs    PaymentAuditLog[]
+  webhookEvents WebhookEvent[]
+
+  @@index([orderId])
+  @@index([razorpayOrderId])
+  @@index([razorpayPaymentId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("payments")
+}
+
+// Webhook Event model for idempotency
+model WebhookEvent {
+  id              String   @id @default(cuid())
+  razorpayEventId String   @unique // Razorpay's event ID (from webhook payload)
+  eventType       String   // 'payment.captured', 'payment.failed', 'refund.processed', etc.
+  paymentId       String?
+  payment         Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  orderId         String?
+  processed       Boolean  @default(false)
+  processedAt     DateTime?
+  error           String?  @db.Text // Error message if processing failed
+  payload         Json?    // Store full webhook payload for debugging
+  createdAt       DateTime @default(now())
+
+  @@index([razorpayEventId])
+  @@index([processed])
+  @@index([paymentId])
+  @@index([orderId])
+  @@index([createdAt])
+  @@map("webhook_events")
+}
+
+// Refund model for tracking multiple refunds
+model Refund {
+  id                String   @id @default(cuid())
+  paymentId         String
+  payment           Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  razorpayRefundId  String   @unique // Razorpay refund ID
+  amount            Float    // Refund amount in rupees
+  currency          String   @default("INR")
+  status            String   // 'pending', 'processed', 'failed'
+  reason            String?  @db.Text
+  notes             Json?    // Additional refund data
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([paymentId])
+  @@index([razorpayRefundId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("refunds")
+}
+
+// Payment Audit Log for compliance and tracking
+model PaymentAuditLog {
+  id          String   @id @default(cuid())
+  paymentId   String
+  payment     Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  action      String   // 'created', 'verified', 'captured', 'failed', 'refunded', 'status_changed'
+  performedBy String?  // User ID or 'system' or 'razorpay_webhook'
+  oldStatus   String?
+  newStatus   String
+  metadata    Json?    // Additional context
+  createdAt   DateTime @default(now())
+
+  @@index([paymentId])
+  @@index([action])
+  @@index([createdAt])
+  @@index([performedBy])
+  @@map("payment_audit_logs")
+}
+
+// Failed Webhook model for retry mechanism
+model FailedWebhook {
+  id        String   @id @default(cuid())
+  payload   Json     // Full webhook payload
+  signature String   // Webhook signature
+  eventId   String?  // Razorpay event ID if available
+  error     String   @db.Text // Error message
+  retries   Int      @default(0)
+  lastRetryAt DateTime?
+  maxRetries Int     @default(5)
+  processed Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([retries])
+  @@index([processed])
+  @@index([createdAt])
+  @@map("failed_webhooks")
+}
+
+// Shipment model for Shiprocket integration
+model Shipment {
+  id        String   @id @default(cuid())
+  orderId   String   @unique
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  // Shiprocket fields
+  shiprocketOrderId     String?  @unique // Shiprocket order ID
+  shiprocketShipmentId  String?  @unique // Shiprocket shipment ID
+  awbNumber             String?  @unique // Airway Bill Number
+  
+  // Courier details
+  courierName            String?
+  courierId              String?
+  courierTrackingUrl     String?
+  
+  // Shipment details
+  status                 ShipmentStatus @default(PENDING)
+  trackingUrl            String?
+  labelUrl               String? // Shipping label URL
+  manifestUrl            String? // Manifest URL
+  
+  // Address details (stored for reference)
+  pickupAddress          Json? // Pickup address
+  deliveryAddress        Json? // Delivery address
+  
+  // Weight and dimensions
+  weight                 Float? // in grams
+  length                 Float? // in cm
+  breadth                Float? // in cm
+  height                 Float? // in cm
+  
+  // Shipping charges
+  shippingCharges        Float?
+  codCharges             Float?
+  totalCharges           Float?
+  
+  // Status updates
+  currentStatus          String? // Current shipment status from Shiprocket
+  statusHistory          Json? // Array of status updates
+  
+  // RTO (Return to Origin) details
+  rtoStatus              String? // RTO status if applicable
+  rtoAwbNumber           String?
+  
+  // Metadata
+  metadata               Json? // Additional Shiprocket data
+  
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  
+  @@index([orderId])
+  @@index([shiprocketOrderId])
+  @@index([shiprocketShipmentId])
+  @@index([awbNumber])
+  @@index([status])
+  @@map("shipments")
+}
+
+enum ShipmentStatus {
+  PENDING           // Shipment not created yet
+  PROCESSING        // Shipment being processed
+  READY_TO_SHIP     // Ready for pickup
+  PICKED_UP         // Picked up by courier
+  IN_TRANSIT        // In transit
+  OUT_FOR_DELIVERY  // Out for delivery
+  DELIVERED         // Delivered
+  FAILED            // Delivery failed
+  RTO               // Return to Origin
+  CANCELLED         // Cancelled
+}
+
 enum ProductStatus {
   DRAFT
   PUBLISHED
@@ -271,6 +478,8 @@ model StockMovement {
   id        String  @id @default(cuid())
   productId String
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variantId String? // Optional: for variant-based stock tracking
+  variant   ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
 
   type          StockMovementType
   quantity      Int // Positive for additions, negative for deductions
@@ -284,6 +493,7 @@ model StockMovement {
   createdAt DateTime @default(now())
 
   @@index([productId])
+  @@index([variantId])
   @@index([createdAt])
   @@index([type])
   @@map("stock_movements")
@@ -359,8 +569,9 @@ model ProductVariant {
   attributes    Json // { size: "7", color: "gold", material: "14k" }
   image         String? // Variant-specific image
 
-  cartItems  CartItem[]
-  orderItems OrderItem[]
+  cartItems      CartItem[]
+  orderItems     OrderItem[]
+  stockMovements StockMovement[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
