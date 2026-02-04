@@ -13,18 +13,18 @@ const confidenceFeatures = [
   },
   {
     id: 2,
-    title: "18K GOLD VERMEIL",
+    title: "18K GOLD PLATED",
     icon: Layers,
     description:
-      "Our jewelry is crafted from premium metals like surgical steel, sterling silver, and thick 18k gold plating, ensuring durability and lasting shine. Experience luxury and quality with every piece, designed to stand the test of time.",
+      "Our jewelry is crafted from premium metals like stainless steel with 18k gold plating, ensuring durability and lasting shine. Experience luxury and quality with every piece, designed to stand the test of time.",
   },
-  {
-    id: 3,
-    title: "AUTHENTIC DIAMONDS",
-    icon: Sparkles,
-    description:
-      "Our lab-grown diamonds are SGL Certified, ensuring the highest standards of quality and authenticity same like natural diamonds. Each diamond undergoes rigorous testing to guarantee its brilliance and ethical origins. Shine with confidence in every sparkly moment.",
-  },
+  // {
+  //   id: 3,
+  //   title: "AUTHENTIC DIAMONDS",
+  //   icon: Sparkles,
+  //   description:
+  //     "Our lab-grown diamonds are SGL Certified, ensuring the highest standards of quality and authenticity same like natural diamonds. Each diamond undergoes rigorous testing to guarantee its brilliance and ethical origins. Shine with confidence in every sparkly moment.",
+  // },
 ];
 
 export default function ShopWithConfidence() {
@@ -45,7 +45,7 @@ export default function ShopWithConfidence() {
         </motion.div>
 
         {/* Three Column Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-10">
           {confidenceFeatures.map((feature, index) => {
             const Icon = feature.icon;
             return (
