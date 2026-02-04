@@ -181,20 +181,10 @@ export default function Header() {
             {isMenuOpen ? <X /> : <Menu />}
           </Button>
 
-          {/* Logo */}
-          <Link href="/" className="flex-shrink-0 flex items-center">
-            <Image
-              src="/img/logo-adronx.webp"
-              alt="Adorné"
-              width={220}
-              height={70}
-              priority
-              className="h-12 sm:h-14 md:h-16 lg:h-20 w-auto object-contain"
-            />
-          </Link>
+          
 
           {/* Search Bar - Desktop */}
-          <div className="hidden md:flex flex-1 min-w-0 max-w-md mx-4 lg:mx-6 xl:mx-8 items-center">
+          <div className="hidden relative md:flex items-center h-14 md:h-16">
             <div ref={searchContainerRef} className="relative w-full">
               <form onSubmit={handleSearchSubmit}>
                 <Input
@@ -283,6 +273,18 @@ export default function Header() {
               )}
             </div>
           </div>
+
+          {/* Logo */}
+          <Link href="/" className="absolute left-1/2 -translate-x-1/2 flex items-center">
+            <Image
+              src="/img/logo-adronx.webp"
+              alt="Adorné"
+              width={300}
+              height={100}
+              priority
+              className="h-14 sm:h-16 md:h-[72px] lg:h-24 w-auto object-contain"
+            />
+          </Link>
 
           {/* Right Icons */}
           <div className="flex items-center gap-0.5 sm:gap-1 md:gap-2 flex-shrink-0">
