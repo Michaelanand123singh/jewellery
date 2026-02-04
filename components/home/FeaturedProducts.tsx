@@ -43,7 +43,7 @@ export default function FeaturedProducts() {
 
         {/* SLIDES */}
         <div
-          className="relative w-full h-[520px] flex items-center justify-center"
+          className="relative w-full h-[520px] sm:min-h-[240px] md:min-h-[480px] lg:min-h-[600px] flex items-center justify-center"
           style={{ perspective: "1200px" }}
         >
           {items.map((item, i) => {
