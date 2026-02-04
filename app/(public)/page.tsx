@@ -15,7 +15,7 @@ export default function Home() {
     <main className="flex-grow">
       <HeroSection />
       <EverydayDemifineSection />
-      <ProductSection title="Adorne Top Styles" />
+      <ProductSection title="Adorne Your Way!" />
       <PromotionalBanner />
       <FeaturedProducts />
       <BannerSection />

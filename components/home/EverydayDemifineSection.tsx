@@ -25,7 +25,7 @@ export default function EverydayDemifineSection() {
           className="text-center mb-8"
         >
           <h2 className="text-lg sm:text-xl md:text-2xl font-semibold tracking-wide">
-            EVERYDAY DEMIFINE JEWELLERY
+            ADORNE BESTSELLERS 
           </h2>
         </motion.div>
 
