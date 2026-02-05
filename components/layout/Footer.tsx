@@ -88,22 +88,22 @@ export default function Footer() {
             <h4 className="font-semibold mb-3 sm:mb-4 text-sm sm:text-base">Customer Service</h4>
             <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-slate-400">
               <li>
-                <Link href="#" className="hover:text-primary transition-colors">
+                <Link href="/refund-return-shipping" className="hover:text-primary transition-colors">
                   Shipping Info
                 </Link>
               </li>
               <li>
-                <Link href="#" className="hover:text-primary transition-colors">
-                  Returns
+                <Link href="/refund-return-shipping" className="hover:text-primary transition-colors">
+                  Returns & Refunds
                 </Link>
               </li>
               <li>
-                <Link href="#" className="hover:text-primary transition-colors">
+                <Link href="/contact" className="hover:text-primary transition-colors">
                   FAQ
                 </Link>
               </li>
               <li>
-                <Link href="#" className="hover:text-primary transition-colors">
+                <Link href="/contact" className="hover:text-primary transition-colors">
                   Warranty
                 </Link>
               </li>
@@ -132,9 +132,26 @@ export default function Footer() {
           </div>
         </div>
 
+        {/* Legal Links */}
+        <div className="border-t border-slate-800 mt-8 sm:mt-10 md:mt-12 pt-6 sm:pt-8">
+          <div className="flex flex-wrap justify-center gap-4 sm:gap-6 text-xs sm:text-sm text-slate-400">
+            <Link href="/terms" className="hover:text-primary transition-colors">
+              Terms & Conditions
+            </Link>
+            <span className="text-slate-600">|</span>
+            <Link href="/privacy" className="hover:text-primary transition-colors">
+              Privacy Policy
+            </Link>
+            <span className="text-slate-600">|</span>
+            <Link href="/refund-return-shipping" className="hover:text-primary transition-colors">
+              Refund & Shipping Policy
+            </Link>
+          </div>
+        </div>
+
         {/* Copyright */}
-        <div className="border-t border-slate-800 mt-8 sm:mt-10 md:mt-12 pt-6 sm:pt-8 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4 text-xs sm:text-sm text-slate-400">
-          <p className="text-center sm:text-left">© {new Date().getFullYear()} Adorne. All Rights Reserved.</p>
+        <div className="border-t border-slate-800 mt-4 sm:mt-6 pt-6 sm:pt-8 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4 text-xs sm:text-sm text-slate-400">
+          <p className="text-center sm:text-left">© {new Date().getFullYear()} Adorne Luxe Jewellery. All Rights Reserved.</p>
           <div className="flex-shrink-0">
             <img
               src="/img/payment.png"
