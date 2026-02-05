@@ -26,24 +26,31 @@ export default function FeaturedProducts() {
     return () => clearInterval(timer);
   }, []);
 
+  const isMobile =
+    typeof window !== "undefined" && window.innerWidth < 640;
+
   return (
     <section className="relative bg-white py-20 overflow-hidden">
-
-      {/* 3D Carousel Container */}
-
       <div className="relative max-w-7xl mx-auto flex items-center justify-center">
         {/* LEFT ARROW */}
         <button
           onClick={prev}
-          className="absolute left-6 z-30 bg-white rounded-full shadow p-2"
+          className="absolute left-4 sm:left-6 z-30 bg-white rounded-full shadow p-2"
           aria-label="Previous"
         >
           <ChevronLeft size={30} />
         </button>
 
-        {/* SLIDES */}
+        {/* CAROUSEL */}
         <div
-          className="relative w-full h-[520px] sm:min-h-[240px] md:min-h-[480px] lg:min-h-[600px] flex items-center justify-center"
+          className="
+            relative w-full
+            h-[340px]
+            sm:h-[420px]
+            md:h-[520px]
+            lg:h-[600px]
+            flex items-center justify-center
+          "
           style={{ perspective: "1200px" }}
         >
           {items.map((item, i) => {
@@ -55,34 +62,34 @@ export default function FeaturedProducts() {
             let zIndex = 0;
             let opacity = 1;
 
-            // LEFT CARD
+            // LEFT
             if (pos === 0) {
-              x = -340;
-              scale = 0.92;
+              x = isMobile ? -160 : -340;
+              scale = isMobile ? 0.9 : 0.92;
               rotateY = 12;
               zIndex = 1;
               opacity = 0.9;
             }
 
-            // CENTER CARD
+            // CENTER
             if (pos === 1) {
               x = 0;
-              scale = 1.05;
+              scale = isMobile ? 1 : 1.05;
               rotateY = 0;
               zIndex = 3;
               opacity = 1;
             }
 
-            // RIGHT CARD
+            // RIGHT
             if (pos === 2) {
-              x = 340;
-              scale = 0.92;
+              x = isMobile ? 160 : 340;
+              scale = isMobile ? 0.9 : 0.92;
               rotateY = -12;
               zIndex = 1;
               opacity = 0.9;
             }
 
-            // HIDE REST
+            // HIDE OTHERS
             if (pos > 2) opacity = 0;
 
             return (
@@ -99,7 +106,15 @@ export default function FeaturedProducts() {
                   transformStyle: "preserve-3d",
                 }}
               >
-                <div className="relative w-[400px] h-[480px]">
+                <div
+                  className="
+                    relative
+                    w-[220px] h-[280px]
+                    sm:w-[260px] sm:h-[340px]
+                    md:w-[340px] md:h-[420px]
+                    lg:w-[400px] lg:h-[480px]
+                  "
+                >
                   <Image
                     src={item.image}
                     alt={item.label}
@@ -110,7 +125,7 @@ export default function FeaturedProducts() {
 
                   {/* LABEL */}
                   <div className="absolute bottom-6 left-1/2 -translate-x-1/2">
-                    <span className="text-white text-md underline tracking-wide">
+                    <span className="text-white text-sm sm:text-md underline tracking-wide">
                       {item.label}
                     </span>
                   </div>
@@ -123,7 +138,7 @@ export default function FeaturedProducts() {
         {/* RIGHT ARROW */}
         <button
           onClick={next}
-          className="absolute right-6 z-30 bg-white rounded-full shadow p-2"
+          className="absolute right-4 sm:right-6 z-30 bg-white rounded-full shadow p-2"
           aria-label="Next"
         >
           <ChevronRight size={30} />
