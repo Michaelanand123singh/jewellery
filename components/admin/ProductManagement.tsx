@@ -1145,14 +1145,14 @@ export default function ProductManagement() {
         <div className="space-y-6">
             <Card>
                 <CardHeader>
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div>
                             <CardTitle>Product Management</CardTitle>
                             <CardDescription>
                                 Add, edit, or remove products from your store
                             </CardDescription>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
                             <Button
                                 variant="outline"
                                 onClick={handleDownloadSample}
