@@ -19,7 +19,7 @@ import {
   IndianRupee,
   Sparkles,
   ChevronLeft,
-  Tag,
+  Tag
 } from "lucide-react";
 import { useCartStore, useWishlistStore, Product } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -40,9 +40,7 @@ function CarouselWishlistButton({
   productName: string;
   onAddToWishlist: () => void;
 }) {
-  const isInWishlist = useWishlistStore((state) =>
-    state.isInWishlist(productId),
-  );
+  const isInWishlist = useWishlistStore((state) => state.isInWishlist(productId),);
 
   return (
     <button
@@ -80,9 +78,8 @@ export default function ProductPage({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [selectedSize, setSelectedSize] = useState<string>("6");
-  const [expandedSections, setExpandedSections] = useState<{
-    [key: string]: boolean;
-  }>({
+  const [expandedSections, setExpandedSections] = useState<{ [key: string]: boolean;}>
+    ({
     description: false,
     specification: false,
     supplier: false,
@@ -96,7 +93,7 @@ export default function ProductPage({
   const addToWishlist = useWishlistStore((state) => state.addItem);
   // Must call hook unconditionally - use empty string as default if product not loaded yet
   const isInWishlist = useWishlistStore((state) =>
-    state.isInWishlist(product?.id || ""),
+    state.isInWishlist(product?.id || "")
   );
   const hasFetched = useRef<string | null>(null);
   const currentProductIdRef = useRef<string | null>(null);
@@ -139,16 +136,13 @@ export default function ProductPage({
         }
         currentProductIdRef.current = productId;
 
-        const productResponse = await apiClient.get<any>(
-          `/products/${productId}`,
-        );
+        const productResponse = await apiClient.get<any>(`/products/${productId}`);
 
         if (productResponse.success && productResponse.data) {
           setProduct(productResponse.data);
 
           // Extract reviews from product response if available
-          if (
-            productResponse.data.reviews &&
+          if (productResponse.data.reviews &&
             Array.isArray(productResponse.data.reviews)
           ) {
             setReviews(productResponse.data.reviews);
@@ -163,7 +157,7 @@ export default function ProductPage({
 
           if (relatedResponse.success && relatedResponse.data) {
             const filtered = relatedResponse.data.filter(
-              (p: Product) => p.id !== productId,
+              (p: Product) => p.id !== productId
             );
             setRelatedProducts(filtered.slice(0, 8));
           }
@@ -174,7 +168,7 @@ export default function ProductPage({
             setReviewsLoading(true);
             try {
               const reviewsResponse = await apiClient.get(
-                `/reviews?productId=${productId}`,
+                `/reviews?productId=${productId}`
               );
               if (reviewsResponse.success && reviewsResponse.data) {
                 const reviewsData =
@@ -269,9 +263,9 @@ export default function ProductPage({
   };
 
   const toggleSection = (section: string) => {
-    setExpandedSections((prev) => ({
+    setExpandedSections(prev => ({
       ...prev,
-      [section]: !prev[section],
+      [section]: !prev[section]
     }));
   };
 
@@ -297,15 +291,15 @@ export default function ProductPage({
   const promotionalOffers = [
     {
       text: "Buy 3 at 3003 Use Code: MEGA3 at checkout.",
-      code: "MEGA3",
+      code: "MEGA3"
     },
     {
       text: "Buy 4 at 3996 Use Code: MEGA4 at checkout.",
-      code: "MEGA4",
+      code: "MEGA4"
     },
     {
       text: "Buy 1 Get 1 Free Use Code: B1G1 at checkout.",
-      code: "B1G1",
+      code: "B1G1"
     },
   ];
 
@@ -333,7 +327,7 @@ export default function ProductPage({
         reviewCount: 0,
         inStock: true,
         stockQuantity: 0,
-        description: "Beautiful bracelet with heart charms",
+        description: "Beautiful bracelet with heart charms"
       },
       {
         id: "b1g1-2",
@@ -348,7 +342,7 @@ export default function ProductPage({
         reviewCount: 0,
         inStock: true,
         stockQuantity: 0,
-        description: "Classic ball stud earrings",
+        description: "Classic ball stud earrings"
       },
       {
         id: "b1g1-3",
@@ -363,7 +357,7 @@ export default function ProductPage({
         reviewCount: 0,
         inStock: true,
         stockQuantity: 0,
-        description: "Elegant bangle with crystal details",
+        description: "Elegant bangle with crystal details"
       },
       {
         id: "b1g1-4",
@@ -378,7 +372,7 @@ export default function ProductPage({
         reviewCount: 0,
         inStock: true,
         stockQuantity: 0,
-        description: "Delicate diamond bracelet",
+        description: "Delicate diamond bracelet"
       },
       {
         id: "b1g1-5",
@@ -393,7 +387,7 @@ export default function ProductPage({
         reviewCount: 0,
         inStock: true,
         stockQuantity: 0,
-        description: "Elegant solitaire hoop earrings",
+        description: "Elegant solitaire hoop earrings"
       },
     ],
     b3: [
@@ -410,7 +404,7 @@ export default function ProductPage({
         reviewCount: 0,
         inStock: true,
         stockQuantity: 0,
-        description: "Complete necklace set",
+        description: "Complete necklace set"
       },
       {
         id: "b3-2",
@@ -425,7 +419,7 @@ export default function ProductPage({
         reviewCount: 0,
         inStock: true,
         stockQuantity: 0,
-        description: "Beautiful rose gold rings",
+        description: "Beautiful rose gold rings"
       },
       {
         id: "b3-3",
@@ -440,7 +434,7 @@ export default function ProductPage({
         reviewCount: 0,
         inStock: true,
         stockQuantity: 0,
-        description: "Elegant silver chain bracelet",
+        description: "Elegant silver chain bracelet"
       },
       {
         id: "b3-4",
@@ -455,7 +449,7 @@ export default function ProductPage({
         reviewCount: 0,
         inStock: true,
         stockQuantity: 0,
-        description: "Classic pearl drop earrings",
+        description: "Classic pearl drop earrings"
       },
       {
         id: "b3-5",
@@ -470,7 +464,7 @@ export default function ProductPage({
         reviewCount: 0,
         inStock: true,
         stockQuantity: 0,
-        description: "Premium diamond studs",
+        description: "Premium diamond studs"
       },
     ],
     b4: [
@@ -487,7 +481,7 @@ export default function ProductPage({
         reviewCount: 0,
         inStock: true,
         stockQuantity: 0,
-        description: "Complete premium gold set",
+        description: "Complete premium gold set"
       },
       {
         id: "b4-2",
@@ -502,7 +496,7 @@ export default function ProductPage({
         reviewCount: 0,
         inStock: true,
         stockQuantity: 0,
-        description: "Stylish bangle collection",
+        description: "Stylish bangle collection"
       },
       {
         id: "b4-3",
@@ -517,7 +511,7 @@ export default function ProductPage({
         reviewCount: 0,
         inStock: true,
         stockQuantity: 0,
-        description: "Luxurious necklace design",
+        description: "Luxurious necklace design"
       },
       {
         id: "b4-4",
@@ -532,7 +526,7 @@ export default function ProductPage({
         reviewCount: 0,
         inStock: true,
         stockQuantity: 0,
-        description: "Beautiful earring collection",
+        description: "Beautiful earring collection"
       },
       {
         id: "b4-5",
@@ -547,7 +541,7 @@ export default function ProductPage({
         reviewCount: 0,
         inStock: true,
         stockQuantity: 0,
-        description: "Timeless ring collection",
+        description: "Timeless ring collection"
       },
     ],
   };
@@ -599,7 +593,7 @@ export default function ProductPage({
                       "aspect-square relative overflow-hidden rounded border-2 transition-all",
                       selectedImage === index
                         ? "border-primary"
-                        : "border-transparent hover:border-muted-foreground/50",
+                        : "border-transparent hover:border-muted-foreground/50"
                     )}
                   >
                     <Image
@@ -631,7 +625,7 @@ export default function ProductPage({
                         "h-3 w-3 sm:h-4 sm:w-4",
                         i < Math.floor(product.rating || 0)
                           ? "fill-primary text-primary"
-                          : "text-muted fill-muted",
+                          : "text-muted fill-muted"
                       )}
                     />
                   ))}
@@ -667,10 +661,7 @@ export default function ProductPage({
 
             {/* SKU */}
             <div className="text-sm text-muted-foreground">
-              SKU:{" "}
-              {product.slug
-                ? product.slug.toUpperCase()
-                : product.id.slice(0, 8).toUpperCase()}
+              SKU:{product.slug ? product.slug.toUpperCase() : product.id.slice(0, 8).toUpperCase()}
             </div>
 
             {/* Promotional Offers */}
@@ -711,7 +702,7 @@ export default function ProductPage({
                       "h-9 w-9 sm:h-10 sm:w-10 rounded-full border-2 flex items-center justify-center font-medium text-xs sm:text-sm transition-all",
                       selectedSize === size
                         ? "border-amber-600 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400"
-                        : "border-border hover:border-primary/50 text-foreground bg-background",
+                        : "border-border hover:border-primary/50 text-foreground bg-background"
                     )}
                   >
                     {size}
@@ -759,7 +750,7 @@ export default function ProductPage({
                   <Heart
                     className={cn(
                       "h-4 w-4 sm:h-5 sm:w-5",
-                      isInWishlist && "fill-primary text-primary",
+                      isInWishlist && "fill-primary text-primary"
                     )}
                   />
                 </Button>
@@ -779,15 +770,14 @@ export default function ProductPage({
                     <Plus
                       className={cn(
                         "h-4 w-4 transition-transform",
-                        expandedSections.description && "rotate-45",
+                        expandedSections.description && "rotate-45"
                       )}
                     />
                   </div>
                 </button>
                 {expandedSections.description && (
                   <div className="pb-4 px-4 text-sm text-muted-foreground leading-relaxed">
-                    {product.description ||
-                      "This exquisite jewelry piece features fine craftsmanship and premium materials, designed to be treasured for generations."}
+                    {product.description || "This exquisite jewelry piece features fine craftsmanship and premium materials, designed to be treasured for generations."}
                   </div>
                 )}
               </div>
@@ -803,7 +793,7 @@ export default function ProductPage({
                     <Plus
                       className={cn(
                         "h-4 w-4 transition-transform",
-                        expandedSections.specification && "rotate-45",
+                        expandedSections.specification && "rotate-45"
                       )}
                     />
                   </div>
@@ -860,7 +850,7 @@ export default function ProductPage({
                     </p>
                     <div className="space-y-1">
                       <p>
-                        <span className="font-medium">Supplier Name:</span>{" "}
+                        <span className="font-medium">Supplier Name:</span>
                         Premium Jewelry Co.
                       </p>
                       <p>
@@ -887,7 +877,7 @@ export default function ProductPage({
                     <Plus
                       className={cn(
                         "h-4 w-4 transition-transform",
-                        expandedSections.returns && "rotate-45",
+                        expandedSections.returns && "rotate-45"
                       )}
                     />
                   </div>
@@ -1035,7 +1025,7 @@ export default function ProductPage({
                 "text-sm sm:text-base md:text-lg lg:text-xl font-bold transition-colors pb-2 border-b-2 whitespace-nowrap",
                 activePromoTab === "b1g1"
                   ? "border-primary text-primary"
-                  : "border-transparent text-foreground hover:text-primary",
+                  : "border-transparent text-foreground hover:text-primary"
               )}
             >
               Buy 1 Get 1 Free
@@ -1046,7 +1036,7 @@ export default function ProductPage({
                 "text-xs sm:text-sm md:text-base font-semibold transition-colors pb-2 border-b-2 whitespace-nowrap",
                 activePromoTab === "b3"
                   ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-primary",
+                  : "border-transparent text-muted-foreground hover:text-primary"
               )}
             >
               Buy 3 At 3003
@@ -1057,7 +1047,7 @@ export default function ProductPage({
                 "text-xs sm:text-sm md:text-base font-semibold transition-colors pb-2 border-b-2 whitespace-nowrap",
                 activePromoTab === "b4"
                   ? "border-primary text-primary underline"
-                  : "border-transparent text-muted-foreground hover:text-primary underline",
+                  : "border-transparent text-muted-foreground hover:text-primary underline"
               )}
             >
               Buy 4 At ₹3996
@@ -1077,7 +1067,7 @@ export default function ProductPage({
                     const scrollAmount = carouselRef.current.clientWidth;
                     carouselRef.current.scrollBy({
                       left: -scrollAmount,
-                      behavior: "smooth",
+                      behavior: "smooth"
                     });
                   }
                 }}
@@ -1094,8 +1084,8 @@ export default function ProductPage({
                 ref={carouselRef}
                 className="overflow-x-auto scrollbar-hide scroll-smooth"
                 style={{
-                  scrollbarWidth: "none",
-                  msOverflowStyle: "none",
+                  scrollbarWidth: 'none',
+                  msOverflowStyle: 'none',
                 }}
                 onScroll={(e) =>
                   setCarouselScrollPosition(e.currentTarget.scrollLeft)
@@ -1148,12 +1138,10 @@ export default function ProductPage({
                               e.preventDefault();
                               try {
                                 await addToCart(relatedProduct);
-                                toast.success(
-                                  `${relatedProduct.name} added to cart!`,
-                                );
+                                toast.success(`${relatedProduct.name} added to cart!`);
                               } catch (error: any) {
                                 toast.error(
-                                  error.message || "Failed to add to cart",
+                                  error.message || "Failed to add to cart"
                                 );
                               }
                             }}
@@ -1201,7 +1189,7 @@ export default function ProductPage({
                     const scrollAmount = carouselRef.current.clientWidth;
                     carouselRef.current.scrollBy({
                       left: scrollAmount,
-                      behavior: "smooth",
+                      behavior: "smooth"
                     });
                   }
                 }}
@@ -1275,13 +1263,13 @@ export default function ProductPage({
                             "h-5 w-5",
                             i < Math.floor(product.rating || 0)
                               ? "fill-primary text-primary"
-                              : "text-muted fill-muted",
+                              : "text-muted fill-muted"
                           )}
                         />
                       ))}
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Based on {reviews.length}{" "}
+                      Based on {reviews.length}
                       {reviews.length === 1 ? "review" : "reviews"}
                     </p>
                   </div>
@@ -1350,7 +1338,7 @@ export default function ProductPage({
                                   "h-4 w-4",
                                   i < review.rating
                                     ? "fill-primary text-primary"
-                                    : "text-muted fill-muted",
+                                    : "text-muted fill-muted"
                                 )}
                               />
                             ))}
@@ -1364,7 +1352,7 @@ export default function ProductPage({
                             year: "numeric",
                             month: "short",
                             day: "numeric",
-                          },
+                          }
                         )}
                       </span>
                     </div>
@@ -1407,7 +1395,7 @@ export default function ProductPage({
               onError={(e) => {
                 // Hide image on error, gradient background will show
                 const target = e.target as HTMLImageElement;
-                target.style.display = "none";
+                target.style.display = 'none';
               }}
             />
             {/* Overlay content */}
@@ -1477,7 +1465,7 @@ export default function ProductPage({
                         "h-2 w-2 rounded-full transition-all",
                         selectedImage === index
                           ? "bg-white w-8"
-                          : "bg-white/50 hover:bg-white/75",
+                          : "bg-white/50 hover:bg-white/75"
                       )}
                     />
                   ))}

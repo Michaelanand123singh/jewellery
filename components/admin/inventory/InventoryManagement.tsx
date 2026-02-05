@@ -1,19 +1,18 @@
 "use client";
 
+import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InventoryOverview } from "./InventoryOverview";
 import { InventoryTable } from "./InventoryTable";
 import { StockHistory } from "./StockHistory";
 import { LowStockAlerts } from "./LowStockAlerts";
-import { Package, History } from "lucide-react";
+import { Package, History, AlertTriangle } from "lucide-react";
 
 export default function InventoryManagement() {
   return (
     <div className="space-y-6 w-full max-w-full overflow-x-hidden">
       <div className="px-1">
-        <h1 className="text-3xl font-bold tracking-tight">
-          Inventory Management
-        </h1>
+        <h1 className="text-3xl font-bold tracking-tight">Inventory Management</h1>
         <p className="text-muted-foreground">
           Manage stock levels, track movements, and monitor inventory health
         </p>
@@ -33,18 +32,12 @@ export default function InventoryManagement() {
       <Tabs defaultValue="products" className="space-y-4 w-full">
         {/* Tabs List (scrollable on mobile) */}
         <TabsList className="flex w-full overflow-x-auto">
-          <TabsTrigger
-            value="products"
-            className="flex items-center gap-2 whitespace-nowrap"
-          >
+          <TabsTrigger value="products" className="flex items-center gap-2 whitespace-nowrap">
             <Package className="h-4 w-4" />
             Products
           </TabsTrigger>
 
-          <TabsTrigger
-            value="history"
-            className="flex items-center gap-2 whitespace-nowrap"
-          >
+          <TabsTrigger value="history" className="flex items-center gap-2 whitespace-nowrap">
             <History className="h-4 w-4" />
             Stock History
           </TabsTrigger>
