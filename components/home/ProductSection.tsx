@@ -41,9 +41,7 @@ export default function ProductSection({
 
     const fetchProducts = async () => {
       try {
-        const response = await apiClient.get<Product[]>("/products", {
-          limit: 20,
-        });
+        const response = await apiClient.get<Product[]>("/products", {limit: 20});
         if (response.success && response.data) {
           setProducts(response.data);
         }
@@ -105,7 +103,7 @@ export default function ProductSection({
                   "h-9 px-3 sm:px-4 border border-border text-xs font-semibold uppercase tracking-wide transition",
                   active
                     ? "bg-foreground text-background"
-                    : "bg-background text-foreground hover:bg-muted",
+                    : "bg-background text-foreground hover:bg-muted"
                 )}
               >
                 {f.label}
