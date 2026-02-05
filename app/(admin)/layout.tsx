@@ -53,8 +53,8 @@ export default function AdminLayout({
         <aside className="hidden w-64 flex-col border-r bg-background md:flex inset-y-0 fixed z-10 pt-16 h-full">
           <AdminSidebar className="h-full" />
         </aside>
-        <main className="flex-1 md:pl-64 pt-16 md:pt-4">
-          <div className="p-4 md:p-6 space-y-6">
+        <main className="flex-1 md:pl-64 pt-16 md:pt-4 overflow-x-hidden">
+          <div className="p-4 md:p-6 space-y-6 ">
             {children}
           </div>
         </main>

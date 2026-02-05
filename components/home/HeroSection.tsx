@@ -34,7 +34,7 @@ export default function HeroSection() {
   const goNext = () => setActive((i) => (i + 1) % slides.length);
 
   return (
-    <section className="relative w-full min-h-[240px] sm:min-h-[240px] md:min-h-[480px] lg:min-h-[600px] overflow-hidden">
+    <section className="relative w-full min-h-[240px] sm:min-h-[240px] md:min-h-[480px] lg:min-h-[700px] overflow-hidden">
       {/* Carousel (no content, no gradients) */}
       <div className="absolute inset-0">
         <motion.div

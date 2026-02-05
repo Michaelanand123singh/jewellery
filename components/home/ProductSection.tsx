@@ -41,7 +41,9 @@ export default function ProductSection({
 
     const fetchProducts = async () => {
       try {
-        const response = await apiClient.get<Product[]>("/products", { limit: 20 });
+        const response = await apiClient.get<Product[]>("/products", {
+          limit: 20,
+        });
         if (response.success && response.data) {
           setProducts(response.data);
         }
@@ -83,7 +85,15 @@ export default function ProductSection({
         </motion.div>
 
         {/* Filter Pills */}
-        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mb-8 sm:mb-10">
+        <div
+          className={cn(
+            "flex gap-2 sm:gap-3 mb-8 sm:mb-10",
+            "overflow-x-auto sm:overflow-visible scrollbar-hide",
+            "flex-nowrap sm:flex-wrap",
+            "justify-start sm:justify-center",
+            "px-2 -mx-2",
+          )}
+        >
           {TOP_STYLE_FILTERS.map((f) => {
             const active = f.key === activeFilter;
             return (
@@ -95,7 +105,7 @@ export default function ProductSection({
                   "h-9 px-3 sm:px-4 border border-border text-xs font-semibold uppercase tracking-wide transition",
                   active
                     ? "bg-foreground text-background"
-                    : "bg-background text-foreground hover:bg-muted"
+                    : "bg-background text-foreground hover:bg-muted",
                 )}
               >
                 {f.label}

@@ -521,8 +521,9 @@ export default function ProductManagement() {
     };
 
     return (
-        <div className="space-y-6">
-            <Card>
+        <div className="w-full overflow-x-auto sm:overflow-visible">
+            <div className="min-w-[360px] sm:min-w-0">
+            <Card className="shrink-0">
                 <CardHeader>
                     <div className="flex items-center justify-between">
                         <div>
@@ -897,6 +898,7 @@ export default function ProductManagement() {
                     </form>
                 </DialogContent>
             </Dialog>
+            </div>
         </div>
     );
 }
