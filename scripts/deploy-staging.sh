@@ -20,7 +20,16 @@ git reset --hard origin/staging
 
 # Install dependencies
 echo "📦 Installing dependencies..."
-npm ci --production=false
+if ! npm ci --production=false; then
+    echo "❌ Failed to install dependencies"
+    exit 1
+fi
+
+# Verify Next.js is installed
+if [ ! -f "node_modules/.bin/next" ]; then
+    echo "❌ Next.js not found in node_modules. Reinstalling..."
+    npm install next --save
+fi
 
 # Generate Prisma Client
 echo "🔧 Generating Prisma Client..."
@@ -28,7 +37,10 @@ npx prisma generate
 
 # Build application
 echo "🔨 Building application..."
-npm run build
+if ! npm run build; then
+    echo "❌ Build failed"
+    exit 1
+fi
 
 # Run database migrations
 echo "🗄️ Running database migrations..."

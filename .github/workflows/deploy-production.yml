@@ -54,10 +54,23 @@ jobs:
             git reset --hard origin/main
             
             echo "📦 Installing dependencies..."
-            npm ci --production=false
+            npm ci --production=false || {
+                echo "⚠️ npm ci failed, trying npm install..."
+                npm install
+            }
+            
+            # Verify Next.js is available
+            if [ ! -f "node_modules/.bin/next" ]; then
+                echo "❌ Next.js not found. Installing..."
+                npm install next --save
+            fi
             
             echo "🔨 Building application..."
-            npm run build
+            npm run build || {
+                echo "❌ Build failed. Checking for issues..."
+                ls -la node_modules/.bin/ | grep next || echo "Next.js binary not found"
+                exit 1
+            }
             
             echo "🗄️ Running database migrations..."
             npx prisma generate
