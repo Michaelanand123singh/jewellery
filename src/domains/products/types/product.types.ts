@@ -149,6 +149,7 @@ export interface ProductFilters {
   maxPrice?: number;
   inStock?: boolean;
   rating?: number;
+  status?: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
 }
 
 export interface ProductSort {

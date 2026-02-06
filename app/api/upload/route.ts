@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
-import { supabaseAdmin } from '@/lib/supabase';
+import { storage, isStorageConfigured } from '@/lib/storage';
 import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 
-// POST /api/upload - Upload image to Supabase Storage
+// POST /api/upload - Upload file to MinIO Storage
 export async function POST(request: NextRequest) {
     try {
         const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
@@ -14,30 +14,21 @@ export async function POST(request: NextRequest) {
         const user = await requireAdmin(request);
         logger.request('POST', '/api/upload', ip, user.id);
 
-        if (!supabaseAdmin) {
-            const { getSupabaseConfigStatus } = await import('@/lib/supabase');
-            const config = getSupabaseConfigStatus();
-            
-            let errorMessage = 'Storage configuration missing.';
+        if (!isStorageConfigured()) {
             const missing: string[] = [];
             
-            if (!config.hasUrl) missing.push('NEXT_PUBLIC_SUPABASE_URL');
-            if (!config.hasAnonKey) missing.push('NEXT_PUBLIC_SUPABASE_ANON_KEY');
-            if (!config.hasServiceRoleKey) missing.push('SUPABASE_SERVICE_ROLE_KEY');
+            if (!process.env.MINIO_ENDPOINT) missing.push('MINIO_ENDPOINT');
+            if (!process.env.MINIO_ACCESS_KEY) missing.push('MINIO_ACCESS_KEY');
+            if (!process.env.MINIO_SECRET_KEY) missing.push('MINIO_SECRET_KEY');
+            if (!process.env.MINIO_BUCKET_NAME) missing.push('MINIO_BUCKET_NAME');
             
-            if (missing.length > 0) {
-                errorMessage = `Missing required environment variables: ${missing.join(', ')}. Please check your .env file.`;
-            } else {
-                errorMessage = 'Supabase admin client not initialized. Please check your environment variables.';
-            }
+            const errorMessage = missing.length > 0
+                ? `Missing required environment variables: ${missing.join(', ')}. Please check your .env file.`
+                : 'Storage configuration missing. Please check your .env file.';
             
-            logger.error('Image upload failed: Supabase not configured', {
+            logger.error('File upload failed: Storage not configured', {
                 userId: user.id,
-                config: {
-                    hasUrl: config.hasUrl,
-                    hasAnonKey: config.hasAnonKey,
-                    hasServiceRoleKey: config.hasServiceRoleKey,
-                }
+                missing,
             });
             
             return NextResponse.json(
@@ -58,57 +49,52 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Validate file type
-        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-        if (!allowedTypes.includes(file.type)) {
+        // Validate file type (support any file type, but log it)
+        const allowedImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+        const isImage = allowedImageTypes.includes(file.type);
+        
+        // For non-image files, we still allow upload but with stricter validation
+        if (!isImage && !file.type) {
             return NextResponse.json(
-                { success: false, error: 'Invalid file type. Only JPEG, PNG, and WebP are allowed.' },
+                { success: false, error: 'Invalid file type. File must have a valid MIME type.' },
                 { status: 400 }
             );
         }
 
-        // Validate file size (max 5MB)
-        const maxSize = 5 * 1024 * 1024; // 5MB
+        // Validate file size (max 10MB for any file type)
+        const maxSize = 10 * 1024 * 1024; // 10MB
         if (file.size > maxSize) {
             return NextResponse.json(
-                { success: false, error: 'File size exceeds 5MB limit' },
+                { success: false, error: `File size exceeds ${maxSize / 1024 / 1024}MB limit` },
                 { status: 400 }
             );
         }
 
         // Generate unique filename
-        const fileExt = file.name.split('.').pop();
+        const fileExt = file.name.split('.').pop() || 'bin';
         const fileName = `${folder}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
-        // Convert File to Buffer
-        const arrayBuffer = await file.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
+        // Upload to MinIO Storage
+        const result = await storage.uploadFile(file, fileName, file.type);
 
-        // Upload to Supabase Storage
-        const { data, error } = await supabaseAdmin.storage
-            .from('products')
-            .upload(fileName, buffer, {
-                contentType: file.type,
-                cacheControl: '3600',
-                upsert: false,
+        if (!result) {
+            logger.error('File upload failed: Storage upload error', {
+                userId: user.id,
+                fileName: file.name,
+                size: file.size,
+                type: file.type,
             });
-
-        if (error) {
-            console.error('Supabase upload error:', error);
+            
             return NextResponse.json(
-                { success: false, error: 'Failed to upload image to storage' },
+                { success: false, error: 'Failed to upload file to storage' },
                 { status: 500 }
             );
         }
 
-        // Get public URL
-        const { data: { publicUrl } } = supabaseAdmin.storage
-            .from('products')
-            .getPublicUrl(data.path);
-
-        logger.info('Image uploaded successfully', {
+        logger.info('File uploaded successfully', {
             userId: user.id,
-            path: data.path,
+            path: result.key,
+            url: result.url,
             size: file.size,
             type: file.type
         });
@@ -116,8 +102,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
             success: true,
             data: {
-                url: publicUrl,
-                path: data.path,
+                url: result.url,
+                path: result.key,
                 name: file.name,
                 size: file.size,
                 type: file.type,
@@ -131,15 +117,15 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        console.error('Error uploading image:', error);
+        console.error('Error uploading file:', error);
         return NextResponse.json(
-            { success: false, error: 'Failed to upload image' },
+            { success: false, error: 'Failed to upload file' },
             { status: 500 }
         );
     }
 }
 
-// DELETE /api/upload - Delete image from Supabase Storage
+// DELETE /api/upload - Delete file from MinIO Storage
 export async function DELETE(request: NextRequest) {
     try {
         const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
@@ -148,30 +134,11 @@ export async function DELETE(request: NextRequest) {
         const user = await requireAdmin(request);
         logger.request('DELETE', '/api/upload', ip, user.id);
 
-        if (!supabaseAdmin) {
-            const { getSupabaseConfigStatus } = await import('@/lib/supabase');
-            const config = getSupabaseConfigStatus();
+        if (!isStorageConfigured()) {
+            const errorMessage = 'Storage configuration missing. Please check your .env file.';
             
-            let errorMessage = 'Storage configuration missing.';
-            const missing: string[] = [];
-            
-            if (!config.hasUrl) missing.push('NEXT_PUBLIC_SUPABASE_URL');
-            if (!config.hasAnonKey) missing.push('NEXT_PUBLIC_SUPABASE_ANON_KEY');
-            if (!config.hasServiceRoleKey) missing.push('SUPABASE_SERVICE_ROLE_KEY');
-            
-            if (missing.length > 0) {
-                errorMessage = `Missing required environment variables: ${missing.join(', ')}. Please check your .env file.`;
-            } else {
-                errorMessage = 'Supabase admin client not initialized. Please check your environment variables.';
-            }
-            
-            logger.error('Image delete failed: Supabase not configured', {
+            logger.error('File delete failed: Storage not configured', {
                 userId: user.id,
-                config: {
-                    hasUrl: config.hasUrl,
-                    hasAnonKey: config.hasAnonKey,
-                    hasServiceRoleKey: config.hasServiceRoleKey,
-                }
             });
             
             return NextResponse.json(
@@ -190,27 +157,29 @@ export async function DELETE(request: NextRequest) {
             );
         }
 
-        // Delete from Supabase Storage
-        const { error } = await supabaseAdmin.storage
-            .from('products')
-            .remove([path]);
+        // Delete from MinIO Storage
+        const deleted = await storage.deleteFile(path);
 
-        if (error) {
-            console.error('Supabase delete error:', error);
+        if (!deleted) {
+            logger.error('File delete failed: Storage delete error', {
+                userId: user.id,
+                path,
+            });
+            
             return NextResponse.json(
-                { success: false, error: 'Failed to delete image from storage' },
+                { success: false, error: 'Failed to delete file from storage' },
                 { status: 500 }
             );
         }
 
-        logger.info('Image deleted successfully', {
+        logger.info('File deleted successfully', {
             userId: user.id,
             path
         });
 
         return NextResponse.json({
             success: true,
-            message: 'Image deleted successfully',
+            message: 'File deleted successfully',
         });
     } catch (error) {
         if (error instanceof Error && error.message.includes('Unauthorized')) {
@@ -220,9 +189,9 @@ export async function DELETE(request: NextRequest) {
             );
         }
 
-        console.error('Error deleting image:', error);
+        console.error('Error deleting file:', error);
         return NextResponse.json(
-            { success: false, error: 'Failed to delete image' },
+            { success: false, error: 'Failed to delete file' },
             { status: 500 }
         );
     }

@@ -10,10 +10,10 @@ import { Package, History, AlertTriangle } from "lucide-react";
 
 export default function InventoryManagement() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Inventory Management</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Inventory Management</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">
           Manage stock levels, track movements, and monitor inventory health
         </p>
       </div>

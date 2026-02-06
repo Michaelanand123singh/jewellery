@@ -358,13 +358,20 @@ export async function GET(request: NextRequest) {
         })
       : [];
 
+    // Transform image URLs to proxy URLs
+    const { getProxyUrl } = await import('@/lib/storage');
+    const transformImageUrl = (url: string): string => {
+      if (!url) return url;
+      return getProxyUrl(url);
+    };
+
     // Format top products
     const formattedTopProducts = topProducts.map((item) => {
       const product = topProductsWithDetails.find(p => p.id === item.productId);
       return {
         id: item.productId,
         name: product?.name || 'Unknown Product',
-        image: product?.image || '',
+        image: product?.image ? transformImageUrl(product.image) : '',
         price: product?.price || 0,
         quantitySold: item._sum.quantity || 0,
         revenue: (item._sum.price || 0) * (item._sum.quantity || 0),

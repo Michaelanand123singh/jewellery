@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { BlogService } from '@/src/domains/blogs/services/blog.service';
 import { handleApiError } from '@/src/shared/middleware/error.middleware';
 import { logger } from '@/src/shared/utils/logger';
+import { getAuthUser } from '@/lib/auth';
 
 export const revalidate = 60;
 
@@ -20,6 +21,30 @@ export async function GET(
 
     const blogService = new BlogService();
     const blog = await blogService.getBlogBySlug(slug);
+
+    if (!blog) {
+      return NextResponse.json(
+        { success: false, error: 'Blog not found' },
+        { status: 404 }
+      );
+    }
+
+    // Check if user is admin - admins can see unpublished blogs
+    let isAdmin = false;
+    try {
+      const user = await getAuthUser(request);
+      isAdmin = user?.role === 'ADMIN';
+    } catch {
+      // User is not authenticated or not admin - check published status
+    }
+
+    // If blog is not published and user is not admin, return 404
+    if (!blog.published && !isAdmin) {
+      return NextResponse.json(
+        { success: false, error: 'Blog not found' },
+        { status: 404 }
+      );
+    }
 
     const response = NextResponse.json({
       success: true,

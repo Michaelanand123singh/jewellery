@@ -58,6 +58,9 @@ function LoginForm() {
         // Update auth state
         await checkAuth();
         
+        // Wait a moment for auth state to propagate
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         // Get user data from response to check role (response data is immediate)
         const userData = response.data as { role?: string } | undefined;
         

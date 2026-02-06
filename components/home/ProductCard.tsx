@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useAuthRequired } from "@/components/providers/AuthRequiredProvider";
 
 interface ProductCardProps {
   product: Product;
@@ -20,19 +21,30 @@ export default function ProductCard({ product }: ProductCardProps) {
   const addToWishlist = useWishlistStore((state) => state.addItem);
   const isInWishlist = useWishlistStore((state) => state.isInWishlist(product.id));
   const [wishlistClicked, setWishlistClicked] = useState(false);
+  const { requireAuth } = useAuthRequired();
 
-  const handleWishlistClick = () => {
-    addToWishlist(product);
-    setWishlistClicked(true);
-    setTimeout(() => setWishlistClicked(false), 500);
+  const handleWishlistClick = async () => {
+    const isAuthenticated = await requireAuth("wishlist", product);
+    if (isAuthenticated) {
+      try {
+        await addToWishlist(product);
+        setWishlistClicked(true);
+        setTimeout(() => setWishlistClicked(false), 500);
+      } catch (error: any) {
+        toast.error(error.message || 'Failed to add to wishlist');
+      }
+    }
   };
 
   const handleAddToCart = async () => {
-    try {
-      await addToCart(product);
-      toast.success(`${product.name} added to cart!`);
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to add to cart');
+    const isAuthenticated = await requireAuth("cart", product);
+    if (isAuthenticated) {
+      try {
+        await addToCart(product);
+        toast.success(`${product.name} added to cart!`);
+      } catch (error: any) {
+        toast.error(error.message || 'Failed to add to cart');
+      }
     }
   };
 

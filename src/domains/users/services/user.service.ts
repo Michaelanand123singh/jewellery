@@ -35,6 +35,15 @@ export class UserService {
     return { users, total, totalPages };
   }
 
+  /**
+   * Get all users for export with optimized batch queries
+   * This method uses batch aggregation instead of per-user queries for better performance
+   */
+  async getAllUsersForExport(filters?: UserFilters, sort?: UserSort) {
+    const { users } = await this.userRepository.findAllForExport(filters, sort);
+    return users;
+  }
+
   async updateUser(id: string, data: UpdateUserData) {
     const user = await this.userRepository.findById(id);
     if (!user) {
