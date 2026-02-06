@@ -19,7 +19,24 @@ export async function GET(request: NextRequest) {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
     logger.request('GET', '/api/v1/products', ip);
 
+    // Check if user is admin - admins can see all products including drafts
+    let isAdmin = false;
+    try {
+      const { getAuthUser } = await import('@/lib/auth');
+      const user = await getAuthUser(request);
+      isAdmin = user?.role === 'ADMIN';
+    } catch {
+      // User is not authenticated - will only see published products
+    }
+
     const { searchParams } = new URL(request.url);
+
+    // Build filters with proper typing
+    const statusParam = searchParams.get('status');
+    const validStatuses = ['DRAFT', 'PUBLISHED', 'ARCHIVED'] as const;
+    const status = statusParam && validStatuses.includes(statusParam as any) 
+      ? (statusParam as 'DRAFT' | 'PUBLISHED' | 'ARCHIVED')
+      : undefined;
 
     const filters = {
       category: searchParams.get('category') || undefined,
@@ -28,6 +45,7 @@ export async function GET(request: NextRequest) {
       maxPrice: searchParams.get('maxPrice') ? parseFloat(searchParams.get('maxPrice')!) : undefined,
       inStock: searchParams.get('inStock') === 'true' ? true : undefined,
       rating: searchParams.get('rating') ? parseFloat(searchParams.get('rating')!) : undefined,
+      status, // Properly typed status filter for admins
     };
 
     const sort = {
@@ -43,7 +61,8 @@ export async function GET(request: NextRequest) {
     const result = await productService.getProducts(
       filters,
       sort,
-      { page, limit, skip }
+      { page, limit, skip },
+      isAdmin // Include draft products for admins
     );
 
     const response = NextResponse.json({

@@ -26,7 +26,10 @@ export class BlogService {
     if (!blog) {
       throw new NotFoundError('Blog');
     }
-    return blog;
+    return {
+      ...blog,
+      image: this.transformImageUrl(blog.image),
+    };
   }
 
   async getBlogBySlug(slug: string): Promise<Blog> {
@@ -34,7 +37,10 @@ export class BlogService {
     if (!blog) {
       throw new NotFoundError('Blog');
     }
-    return blog;
+    return {
+      ...blog,
+      image: this.transformImageUrl(blog.image),
+    };
   }
 
   async getBlogs(
@@ -48,10 +54,50 @@ export class BlogService {
       pagination
     );
 
+    // Transform image URLs to use proxy for frontend access
+    const blogsWithProxyUrls = blogs.map(blog => ({
+      ...blog,
+      image: this.transformImageUrl(blog.image),
+    }));
+
     const limit = pagination?.limit ?? 20;
     const totalPages = Math.ceil(total / limit);
 
-    return { blogs, total, totalPages };
+    return { blogs: blogsWithProxyUrls, total, totalPages };
+  }
+
+  /**
+   * Transform image URL to use proxy for frontend access
+   */
+  private transformImageUrl(url: string): string {
+    // Only transform MinIO URLs, leave other URLs (like external URLs) as-is
+    if (!url) return url;
+    
+    // Check if it's a MinIO URL
+    const config = {
+      publicUrl: process.env.MINIO_PUBLIC_URL || 'http://localhost:9000',
+      bucketName: process.env.MINIO_BUCKET_NAME || 'products',
+    };
+    
+    if (url.includes(config.publicUrl) || url.includes('/' + config.bucketName + '/')) {
+      // Import dynamically to avoid circular dependencies
+      const { getProxyUrl } = require('@/lib/storage');
+      return getProxyUrl(url);
+    }
+    
+    // For relative paths starting with /, assume they're already proxy URLs or public paths
+    if (url.startsWith('/')) {
+      return url;
+    }
+    
+    // For external URLs (http/https), return as-is
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    
+    // For storage keys without URL, convert to proxy URL
+    const { getProxyUrl } = require('@/lib/storage');
+    return getProxyUrl(url);
   }
 
   async createBlog(data: CreateBlogData): Promise<Blog> {
@@ -64,10 +110,15 @@ export class BlogService {
       throw new Error('Blog with this slug already exists');
     }
 
-    return this.blogRepository.create({
+    const blog = await this.blogRepository.create({
       ...data,
       slug,
     });
+
+    return {
+      ...blog,
+      image: this.transformImageUrl(blog.image),
+    };
   }
 
   async updateBlog(id: string, data: UpdateBlogData): Promise<Blog> {
@@ -82,7 +133,12 @@ export class BlogService {
       }
     }
 
-    return this.blogRepository.update(id, data as Partial<CreateBlogData>);
+    const blog = await this.blogRepository.update(id, data as Partial<CreateBlogData>);
+    
+    return {
+      ...blog,
+      image: this.transformImageUrl(blog.image),
+    };
   }
 
   async deleteBlog(id: string): Promise<void> {

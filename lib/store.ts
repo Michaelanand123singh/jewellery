@@ -147,6 +147,12 @@ export const useCartStore = create<CartStore>()(
           }
       },
       addItem: async (product, quantity = 1) => {
+        // Check authentication - user must be logged in to add to cart
+        const authStore = useAuthStore.getState();
+        if (!authStore.user) {
+          throw new Error('Authentication required. Please sign in to add items to cart.');
+        }
+
         // Stock validation (fixes Issue #5)
         if (product.inStock === false) {
           throw new Error('Product is out of stock');
@@ -184,37 +190,34 @@ export const useCartStore = create<CartStore>()(
           });
         }
 
-        // Sync to backend if logged in
-        const authStore = useAuthStore.getState();
-        if (authStore.user) {
-          try {
-            const response = await apiClient.post<{ id: string }>('/cart', { productId: product.id, quantity });
-            if (response.success && response.data?.id) {
-              // Store cartItemId from response for efficient future updates/deletes
-              set({
-                items: get().items.map((item) =>
-                  item.id === product.id
-                    ? { ...item, cartItemId: response.data!.id }
-                    : item
-                ),
-              });
-            }
-          } catch (error: any) {
-            console.error('Failed to sync cart to backend:', error);
-            // Revert local change on error
-            if (existingItem) {
-              set({
-                items: items.map((item) =>
-                  item.id === product.id
-                    ? { ...item, quantity: oldQuantity }
-                    : item
-                ),
-              });
-            } else {
-              set({ items });
-            }
-            toast.error(error.message || 'Cart updated locally but may not sync to server');
+        // Sync to backend (user is authenticated at this point)
+        try {
+          const response = await apiClient.post<{ id: string }>('/cart', { productId: product.id, quantity });
+          if (response.success && response.data?.id) {
+            // Store cartItemId from response for efficient future updates/deletes
+            set({
+              items: get().items.map((item) =>
+                item.id === product.id
+                  ? { ...item, cartItemId: response.data!.id }
+                  : item
+              ),
+            });
           }
+        } catch (error: any) {
+          console.error('Failed to sync cart to backend:', error);
+          // Revert local change on error
+          if (existingItem) {
+            set({
+              items: items.map((item) =>
+                item.id === product.id
+                  ? { ...item, quantity: oldQuantity }
+                  : item
+              ),
+            });
+          } else {
+            set({ items });
+          }
+          toast.error(error.message || 'Cart updated locally but may not sync to server');
         }
       },
       removeItem: async (productId) => {
@@ -405,6 +408,12 @@ export const useWishlistStore = create<WishlistStore>()(
           }
       },
       addItem: async (product) => {
+        // Check authentication - user must be logged in to add to wishlist
+        const authStore = useAuthStore.getState();
+        if (!authStore.user) {
+          throw new Error('Authentication required. Please sign in to add items to wishlist.');
+        }
+
         if (get().isInWishlist(product.id)) {
           return; // Already in wishlist
         }
@@ -412,19 +421,16 @@ export const useWishlistStore = create<WishlistStore>()(
         // Update local state immediately
         set({ items: [...get().items, product] });
 
-        // Sync to backend if logged in
-        const authStore = useAuthStore.getState();
-        if (authStore.user) {
-          try {
-            await apiClient.post('/wishlist', { productId: product.id });
-          } catch (error: any) {
-            // Revert local change on error
-            set({
-              items: get().items.filter((item) => item.id !== product.id),
-            });
-            console.error('Failed to sync wishlist to backend:', error);
-            toast.error(error.message || 'Wishlist updated locally but may not sync to server');
-          }
+        // Sync to backend (user is authenticated at this point)
+        try {
+          await apiClient.post('/wishlist', { productId: product.id });
+        } catch (error: any) {
+          // Revert local change on error
+          set({
+            items: get().items.filter((item) => item.id !== product.id),
+          });
+          console.error('Failed to sync wishlist to backend:', error);
+          toast.error(error.message || 'Wishlist updated locally but may not sync to server');
         }
       },
       removeItem: async (productId) => {
@@ -485,8 +491,12 @@ export const useAuthStore = create<AuthStore>()((set, get) => {
           } else {
             set({ user: null });
           }
-        } catch (error) {
-          console.error('Auth check failed:', error);
+        } catch (error: any) {
+          // 401 errors are expected for non-authenticated users - handle silently
+          // Only log unexpected errors (non-401)
+          if (error?.status !== 401) {
+            console.error('Auth check failed:', error);
+          }
           set({ user: null });
         } finally {
           checkingAuth = false;

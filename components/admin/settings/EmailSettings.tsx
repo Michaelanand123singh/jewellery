@@ -23,6 +23,7 @@ interface EmailSettings {
 export function EmailSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
   const [formData, setFormData] = useState<EmailSettings>({
     smtpHost: "",
     smtpPort: 587,
@@ -62,6 +63,28 @@ export function EmailSettings() {
       toast.error(error.message || "Failed to save settings");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleTestEmail = async () => {
+    setTesting(true);
+
+    try {
+      // First save the settings if they've been modified
+      await apiClient.put("/settings/email", formData);
+      
+      // Then test the email
+      const response = await apiClient.post("/settings/email/test", {});
+      
+      if (response.success) {
+        toast.success(response.message || "Test email sent successfully!");
+      } else {
+        toast.error(response.message || "Failed to send test email");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Failed to test email configuration");
+    } finally {
+      setTesting(false);
     }
   };
 
@@ -177,8 +200,17 @@ export function EmailSettings() {
             </div>
           </div>
 
-          <div className="flex justify-end">
-            <Button type="submit" disabled={saving}>
+          <div className="flex justify-end gap-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleTestEmail}
+              disabled={testing || saving}
+            >
+              {testing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Test Email
+            </Button>
+            <Button type="submit" disabled={saving || testing}>
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save Changes
             </Button>

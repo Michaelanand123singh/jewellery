@@ -8,6 +8,8 @@ import { TokenService } from './token.service';
 import { LoginCredentials, RegisterData, AuthResult } from '../types/auth.types';
 import { NotFoundError, UnauthorizedError } from '@/src/shared/utils/errors';
 import { logger } from '@/src/shared/utils/logger';
+import { EmailService } from '@/src/shared/services/email.service';
+import { EmailTemplatesService } from '@/src/shared/services/email-templates.service';
 
 export class AuthService {
   private userRepository: UserRepository;
@@ -120,6 +122,15 @@ export class AuthService {
       ip,
     });
 
+    // Send welcome email (non-blocking)
+    this.sendWelcomeEmail(user.email, user.name || 'Customer').catch((error) => {
+      logger.error('Failed to send welcome email', {
+        userId: user.id,
+        email: user.email,
+        error: error.message,
+      });
+    });
+
     // Generate token
     const token = this.tokenService.generateToken({
       userId: user.id,
@@ -146,6 +157,39 @@ export class AuthService {
 
   getTokenService(): TokenService {
     return this.tokenService;
+  }
+
+  /**
+   * Send welcome email to new user
+   */
+  private async sendWelcomeEmail(email: string, name: string): Promise<void> {
+    try {
+      const emailService = new EmailService();
+      const isConfigured = await emailService.isEmailConfigured();
+      
+      if (!isConfigured) {
+        logger.warn('Welcome email not sent - email service not configured', { email });
+        return;
+      }
+
+      const template = EmailTemplatesService.generateWelcomeEmail({
+        name,
+        email,
+      });
+
+      await emailService.sendEmail({
+        to: email,
+        subject: 'Welcome to Nextin Jewellery!',
+        html: template.html,
+        text: template.text,
+      });
+    } catch (error: any) {
+      // Log but don't throw - email failure shouldn't break registration
+      logger.error('Error sending welcome email', {
+        email,
+        error: error.message,
+      });
+    }
   }
 }
 
