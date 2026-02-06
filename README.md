@@ -33,7 +33,8 @@ A modern, high-performance jewellery e-commerce application built with Next.js 1
 - **Payment**: Razorpay
 - **Logistics**: Shiprocket
 - **Email**: Nodemailer (SMTP)
-- **Containerization**: Docker & Docker Compose
+- **Process Manager**: PM2
+- **CI/CD**: GitHub Actions
 
 ## 🚀 Quick Start
 
@@ -167,40 +168,29 @@ cat ~/.ssh/github_actions_deploy.pub >> ~/.ssh/authorized_keys
 cat ~/.ssh/github_actions_deploy  # Copy this to GitHub Secrets
 ```
 
-#### Deployment Scripts
+#### Deployment Process (Non-Docker)
 
-Create these scripts on your VPS server:
+The CI/CD pipeline automatically:
+1. Builds the application
+2. Runs tests and linting
+3. Connects to the server via SSH
+4. Pulls the latest code
+5. Installs dependencies
+6. Builds the application
+7. Runs database migrations
+8. Restarts the application using PM2
 
-**`/root/deploy-staging.sh`**:
-```bash
-#!/bin/bash
-set -e
-cd /var/www/staging
-git fetch origin
-git reset --hard origin/staging
-docker-compose -f docker-compose.staging.yml down
-docker-compose -f docker-compose.staging.yml build --no-cache app
-docker-compose -f docker-compose.staging.yml up -d
-docker-compose -f docker-compose.staging.yml exec -T app npx prisma migrate deploy || true
-```
+#### Server Setup Requirements
 
-**`/root/deploy-production.sh`**:
-```bash
-#!/bin/bash
-set -e
-cd /var/www/production
-git fetch origin
-git reset --hard origin/main
-docker-compose build --no-cache app
-docker-compose up -d --no-deps app
-docker-compose exec -T app npx prisma migrate deploy || true
-```
+1. **Node.js 20+** installed on the server
+2. **PM2** installed globally: `npm install -g pm2`
+3. **Git** repositories cloned at:
+   - `/var/www/staging` (staging branch)
+   - `/var/www/production` (main branch)
+4. **PM2 ecosystem configs** in each directory (see `ecosystem.config.js`)
+5. **Environment files** (`.env`) configured in each directory
 
-Make them executable:
-```bash
-chmod +x /root/deploy-staging.sh
-chmod +x /root/deploy-production.sh
-```
+For detailed setup instructions, see [CICD_SETUP.md](./CICD_SETUP.md)
 
 ### Manual Deployment
 
@@ -208,14 +198,29 @@ chmod +x /root/deploy-production.sh
 ```bash
 cd /var/www/staging
 git pull origin staging
-docker-compose -f docker-compose.staging.yml up -d --build
+npm ci
+npm run build
+npx prisma migrate deploy
+pm2 restart jewellery-staging
 ```
 
 **Production:**
 ```bash
 cd /var/www/production
 git pull origin main
-docker-compose up -d --build --no-deps app
+npm ci
+npm run build
+npx prisma migrate deploy
+pm2 restart jewellery-production
+```
+
+Or use the deployment scripts:
+```bash
+# Staging
+bash /var/www/staging/scripts/deploy-staging.sh
+
+# Production
+bash /var/www/production/scripts/deploy-production.sh
 ```
 
 ## 📁 Project Structure
@@ -364,4 +369,4 @@ For issues and questions, please open an issue on [GitHub](https://github.com/Mi
 
 ---
 
-**Built with ❤️ for Adorné Luxe Jewels**
+

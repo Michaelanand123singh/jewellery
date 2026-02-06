@@ -1,35 +1,42 @@
-name: CI
+name: CI - Build and Test
 
 on:
   pull_request:
-    branches: [dev]
+    branches:
+      - main
+      - staging
   push:
-    branches: [dev]
+    branches:
+      - main
+      - staging
+      - develop
 
 jobs:
-  ci:
+  test:
+    name: Run Tests and Lint
     runs-on: ubuntu-latest
-
-    env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/jewellery_db?schema=public
-      JWT_SECRET: dummy_ci_secret_32_chars_long_123456
-      NODE_ENV: test
-
+    
     steps:
-      - name: Checkout repo
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: npm
+          node-version: '20'
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Run tests (if present)
-        run: npm test --if-present
+      - name: Run linter
+        run: npm run lint
 
-      - name: Build
+      - name: Run tests
+        run: npm test
+
+      - name: Build application
         run: npm run build
+        env:
+          NODE_ENV: production
+          NEXT_TELEMETRY_DISABLED: 1
