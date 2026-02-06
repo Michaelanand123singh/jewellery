@@ -9,6 +9,7 @@ export interface JWTPayload {
   userId: string;
   email: string;
   role?: string;
+  provider?: string; // "local" | "google"
 }
 
 export class TokenService {

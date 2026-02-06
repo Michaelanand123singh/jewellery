@@ -18,10 +18,13 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuthStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
+import { useSidebar } from "./SidebarContext";
 
-interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> { }
+interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
+  isCollapsed?: boolean;
+}
 
-export function AdminSidebar({ className }: SidebarProps) {
+export function AdminSidebar({ className, isCollapsed = false }: SidebarProps) {
     const pathname = usePathname();
     const { logout } = useAuthStore();
     const router = useRouter();
@@ -77,37 +80,50 @@ export function AdminSidebar({ className }: SidebarProps) {
     ];
 
     return (
-        <div className={cn("pb-12 min-h-screen border-r bg-background", className)}>
+        <div className={cn("pb-12 min-h-screen border-r bg-background transition-all duration-300", className)}>
             <div className="space-y-4 py-4">
-                <div className="px-3 py-2">
-                    <h2 className="mb-2 px-4 text-lg font-semibold tracking-tight">
-                        Admin Panel
-                    </h2>
+                <div className={cn("px-3 py-2", isCollapsed && "px-2")}>
+                    
+                    {isCollapsed && (
+                        <div className="mb-2 flex justify-center">
+                            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                                <span className="text-primary font-bold text-sm">A</span>
+                            </div>
+                        </div>
+                    )}
                     <div className="space-y-1">
                         {routes.map((route) => (
                             <Button
                                 key={route.href}
                                 variant={route.active ? "secondary" : "ghost"}
-                                className="w-full justify-start"
+                                className={cn(
+                                    "w-full justify-start",
+                                    isCollapsed && "justify-center px-0"
+                                )}
                                 asChild
+                                title={isCollapsed ? route.label : undefined}
                             >
                                 <Link href={route.href}>
-                                    <route.icon className="mr-2 h-4 w-4" />
-                                    {route.label}
+                                    <route.icon className={cn("h-4 w-4", !isCollapsed && "mr-2")} />
+                                    {!isCollapsed && route.label}
                                 </Link>
                             </Button>
                         ))}
                     </div>
                 </div>
 
-                <div className="px-3 py-2 mt-auto">
+                <div className={cn("px-3 py-2 mt-auto", isCollapsed && "px-2")}>
                     <Button
                         variant="ghost"
-                        className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50"
+                        className={cn(
+                            "w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50",
+                            isCollapsed && "justify-center px-0"
+                        )}
                         onClick={handleLogout}
+                        title={isCollapsed ? "Logout" : undefined}
                     >
-                        <LogOut className="mr-2 h-4 w-4" />
-                        Logout
+                        <LogOut className={cn("h-4 w-4", !isCollapsed && "mr-2")} />
+                        {!isCollapsed && "Logout"}
                     </Button>
                 </div>
             </div>
@@ -124,8 +140,8 @@ export function MobileSidebar() {
                 </Button>
             </SheetTrigger>
             <SheetContent side="left" className="p-0 w-72">
-                <AdminSidebar />
+                <AdminSidebar isCollapsed={false} />
             </SheetContent>
         </Sheet>
-    )
+    );
 }

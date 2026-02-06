@@ -19,8 +19,19 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    
+    // Check if user is admin - admins can see all products including drafts
+    let isAdmin = false;
+    try {
+      const { getAuthUser } = await import('@/lib/auth');
+      const user = await getAuthUser(request);
+      isAdmin = user?.role === 'ADMIN';
+    } catch {
+      // User is not authenticated - will only see published products
+    }
+    
     const productService = new ProductService();
-    const product = await productService.getProductById(id);
+    const product = await productService.getProductById(id, isAdmin);
 
     // Fetch reviews for the product (matching /api/products/[id] behavior)
     const { prisma } = await import('@/lib/prisma');
@@ -108,12 +119,17 @@ export async function DELETE(
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
     const { id } = await params;
     
+    if (!id) {
+      return NextResponse.json(
+        { success: false, error: 'Product ID is required' },
+        { status: 400 }
+      );
+    }
+    
     logger.request('DELETE', `/api/v1/products/${id}`, ip);
 
-    // Require admin authentication
     await requireAdminRole(request);
 
-    // Validate CSRF token
     const csrfValid = await validateCsrf(request);
     if (!csrfValid) {
       logger.security('CSRF validation failed', { path: `/api/v1/products/${id}`, method: 'DELETE', ip });

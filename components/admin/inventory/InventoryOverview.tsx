@@ -29,7 +29,7 @@ export function InventoryOverview() {
   const fetchStats = async () => {
     try {
       const response = await apiClient.get<InventoryStats>(
-        "/api/v1/inventory/stats"
+        "/inventory/stats"
       );
       if (response.success && response.data) {
         setStats(response.data);

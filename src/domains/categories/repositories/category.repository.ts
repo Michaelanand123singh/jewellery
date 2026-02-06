@@ -31,34 +31,106 @@ export class CategoryRepository {
     }) as unknown as Category | null;
   }
 
-  async findMany(includeInactive: boolean = false): Promise<Category[]> {
-    return prisma.category.findMany({
-      where: includeInactive ? undefined : { isActive: true },
+  async findMany(includeInactive: boolean = false, onlyNavCategories: boolean = false): Promise<Category[]> {
+    const where: any = {};
+    
+    if (!includeInactive) {
+      where.isActive = true;
+    }
+    
+    if (onlyNavCategories) {
+      where.showInNav = true;
+    }
+    
+    // Build children where clause
+    const childrenWhere: any = {};
+    if (onlyNavCategories) {
+      childrenWhere.showInNav = true;
+      if (!includeInactive) {
+        childrenWhere.isActive = true;
+      }
+    } else if (!includeInactive) {
+      childrenWhere.isActive = true;
+    }
+    
+    const categories = await prisma.category.findMany({
+      where: Object.keys(where).length > 0 ? where : {},
       include: {
         parent: true,
         children: {
+          where: Object.keys(childrenWhere).length > 0 ? childrenWhere : {},
           orderBy: { order: 'asc' },
         },
       },
       orderBy: [{ order: 'asc' }, { name: 'asc' }],
     }) as unknown as Category[];
+    
+    // Recursively filter children if onlyNavCategories is true
+    if (onlyNavCategories) {
+      return this.filterNavCategories(categories);
+    }
+    
+    return categories;
+  }
+  
+  /**
+   * Recursively filter categories to only include those with showInNav = true
+   */
+  private filterNavCategories(categories: Category[]): Category[] {
+    return categories
+      .filter(cat => cat.showInNav)
+      .map(cat => ({
+        ...cat,
+        children: cat.children ? this.filterNavCategories(cat.children) : undefined,
+      }));
   }
 
-  async findRootCategories(includeInactive: boolean = false): Promise<Category[]> {
-    return prisma.category.findMany({
-      where: {
-        parentId: null,
-        ...(includeInactive ? {} : { isActive: true }),
-      },
+  async findRootCategories(includeInactive: boolean = false, onlyNavCategories: boolean = false): Promise<Category[]> {
+    const where: any = {
+      parentId: null,
+    };
+    
+    if (!includeInactive) {
+      where.isActive = true;
+    }
+    
+    if (onlyNavCategories) {
+      where.showInNav = true;
+    }
+    
+    // Build children where clause
+    const childrenWhere: any = {};
+    if (onlyNavCategories) {
+      childrenWhere.showInNav = true;
+      if (!includeInactive) {
+        childrenWhere.isActive = true;
+      }
+    } else if (!includeInactive) {
+      childrenWhere.isActive = true;
+    }
+    
+    // Order by navOrder if filtering by nav, otherwise by order
+    const orderBy: any = onlyNavCategories 
+      ? [{ navOrder: 'asc' as const }, { order: 'asc' as const }, { name: 'asc' as const }]
+      : [{ order: 'asc' as const }, { name: 'asc' as const }];
+    
+    const rootCategories = await prisma.category.findMany({
+      where,
       include: {
         children: {
-          where: includeInactive ? undefined : { isActive: true },
+          where: Object.keys(childrenWhere).length > 0 ? childrenWhere : {},
           orderBy: { order: 'asc' },
         },
       },
-      // Order by the manual display order then name; navOrder is handled at UI level
-      orderBy: [{ order: 'asc' }, { name: 'asc' }],
+      orderBy,
     }) as unknown as Category[];
+    
+    // Only filter recursively if explicitly requesting nav-only categories
+    if (onlyNavCategories) {
+      return this.filterNavCategories(rootCategories);
+    }
+    
+    return rootCategories;
   }
 
   async create(data: CreateCategoryData): Promise<Category> {
@@ -166,8 +238,8 @@ export class CategoryRepository {
     });
   }
 
-  async getCategoryTree(includeInactive: boolean = false): Promise<Category[]> {
-    const rootCategories = await this.findRootCategories(includeInactive);
+  async getCategoryTree(includeInactive: boolean = false, onlyNavCategories: boolean = false): Promise<Category[]> {
+    const rootCategories = await this.findRootCategories(includeInactive, onlyNavCategories);
     return rootCategories;
   }
 }

@@ -1,0 +1,44 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches:
+      - staging
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  deploy:
+    name: Deploy to Staging Environment
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.STAGING_SSH_KEY }}
+
+      - name: Add server to known hosts
+        run: |
+          ssh-keyscan -p ${{ secrets.STAGING_SSH_PORT || 22 }} ${{ secrets.STAGING_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to staging server
+        run: |
+          ssh -p ${{ secrets.STAGING_SSH_PORT || 22 }} \
+            ${{ secrets.STAGING_SSH_USER }}@${{ secrets.STAGING_HOST }} \
+            'bash /root/deploy-staging.sh'
+
+      - name: Deployment notification
+        if: success()
+        run: |
+          echo "✅ Staging deployment completed successfully!"
+          echo "🌐 Staging URL: https://staging.adorneluxejewels.com"
+
+      - name: Deployment failure notification
+        if: failure()
+        run: |
+          echo "❌ Staging deployment failed!"
+          exit 1
+

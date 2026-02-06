@@ -3,7 +3,7 @@
  */
 
 import { prisma } from '@/src/infrastructure/database/prisma';
-import { Order, CreateOrderData, UpdateOrderStatusData } from '../types/order.types';
+import { Order, CreateOrderData, UpdateOrderStatusData, OrderFilters, OrderSort } from '../types/order.types';
 import { OrderStatus } from '@/src/shared/constants/order-status';
 import { PaginationParams } from '@/src/shared/types/common.types';
 
@@ -22,9 +22,24 @@ export class OrderRepository {
                 price: true,
               },
             },
+            variant: {
+              select: {
+                id: true,
+                name: true,
+                sku: true,
+              },
+            },
           },
         },
         address: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+          },
+        },
       },
     }) as Promise<Order | null>;
   }
@@ -64,12 +79,61 @@ export class OrderRepository {
     return { orders: orders as Order[], total };
   }
 
-  async findAll(pagination?: PaginationParams): Promise<{ orders: Order[]; total: number }> {
+  async findAll(
+    filters?: OrderFilters,
+    sort?: OrderSort,
+    pagination?: PaginationParams
+  ): Promise<{ orders: Order[]; total: number }> {
+    const where: any = {};
+
+    if (filters?.status) {
+      where.status = filters.status;
+    }
+
+    if (filters?.paymentStatus) {
+      where.paymentStatus = filters.paymentStatus;
+    }
+
+    if (filters?.paymentMethod) {
+      where.paymentMethod = filters.paymentMethod;
+    }
+
+    if (filters?.userId) {
+      where.userId = filters.userId;
+    }
+
+    if (filters?.startDate || filters?.endDate) {
+      where.createdAt = {};
+      if (filters.startDate) {
+        where.createdAt.gte = filters.startDate;
+      }
+      if (filters.endDate) {
+        where.createdAt.lte = filters.endDate;
+      }
+    }
+
+    if (filters?.search) {
+      where.OR = [
+        { id: { contains: filters.search, mode: 'insensitive' } },
+        { user: { name: { contains: filters.search, mode: 'insensitive' } } },
+        { user: { email: { contains: filters.search, mode: 'insensitive' } } },
+        { orderItems: { some: { product: { name: { contains: filters.search, mode: 'insensitive' } } } } },
+      ];
+    }
+
+    const orderBy: any = {};
+    if (sort?.sortBy) {
+      orderBy[sort.sortBy] = sort.sortOrder || 'desc';
+    } else {
+      orderBy.createdAt = 'desc';
+    }
+
     const skip = pagination?.skip ?? 0;
     const take = pagination?.limit ?? 20;
 
     const [orders, total] = await Promise.all([
       prisma.order.findMany({
+        where,
         include: {
           orderItems: {
             include: {
@@ -81,15 +145,30 @@ export class OrderRepository {
                   price: true,
                 },
               },
+              variant: {
+                select: {
+                  id: true,
+                  name: true,
+                  sku: true,
+                },
+              },
             },
           },
           address: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phone: true,
+            },
+          },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy,
         skip,
         take,
       }),
-      prisma.order.count(),
+      prisma.order.count({ where }),
     ]);
 
     return { orders: orders as Order[], total };
@@ -100,7 +179,7 @@ export class OrderRepository {
     shipping: number;
     tax: number;
     total: number;
-    orderItems: Array<{ productId: string; quantity: number; price: number }>;
+    orderItems: Array<{ productId: string; variantId?: string | null; quantity: number; price: number }>;
   }): Promise<Order> {
     return prisma.order.create({
       data: {
@@ -141,6 +220,41 @@ export class OrderRepository {
       data: {
         status: data.status,
         paymentStatus: data.paymentStatus,
+      },
+      include: {
+        orderItems: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                name: true,
+                image: true,
+                price: true,
+              },
+            },
+          },
+        },
+        address: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+          },
+        },
+      },
+    }) as Promise<Order>;
+  }
+
+  async update(id: string, data: Partial<Order>): Promise<Order> {
+    return prisma.order.update({
+      where: { id },
+      data: {
+        status: data.status as any,
+        paymentStatus: data.paymentStatus as any,
+        paymentId: data.paymentId,
+        notes: data.notes,
       },
       include: {
         orderItems: {

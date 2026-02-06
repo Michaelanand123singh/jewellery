@@ -33,14 +33,57 @@ async function handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
   const data = await response.json();
 
   if (!response.ok) {
-    throw new ApiError(
+    // Create error with status code for proper handling
+    const error = new ApiError(
       data.error || 'An error occurred',
       response.status,
       data.errors
     );
+    // Attach status to error object for easy checking
+    (error as any).status = response.status;
+    throw error;
   }
 
   return data;
+}
+
+// Get CSRF token from cookie or fetch it
+async function getCsrfToken(): Promise<string | null> {
+  // Try to get from cookie first
+  const cookies = document.cookie.split(';');
+  const csrfCookie = cookies.find(cookie => cookie.trim().startsWith('csrf-token='));
+  if (csrfCookie) {
+    return csrfCookie.split('=')[1];
+  }
+
+  // If not in cookie, fetch it
+  try {
+    const response = await fetch('/api/csrf');
+    const data = await response.json();
+    if (data.success && data.token) {
+      return data.token;
+    }
+  } catch (error) {
+    console.warn('Failed to fetch CSRF token:', error);
+  }
+
+  return null;
+}
+
+// Build headers with CSRF token for state-changing methods
+async function buildHeaders(includeCsrf: boolean = false): Promise<HeadersInit> {
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+
+  if (includeCsrf) {
+    const csrfToken = await getCsrfToken();
+    if (csrfToken) {
+      headers['X-CSRF-Token'] = csrfToken;
+    }
+  }
+
+  return headers;
 }
 
 export const apiClient = {
@@ -68,11 +111,10 @@ export const apiClient = {
   },
 
   async post<T>(endpoint: string, body?: any): Promise<ApiResponse<T>> {
+    const headers = await buildHeaders(true);
     const response = await fetch(`${API_BASE}${endpoint}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: body ? JSON.stringify(body) : undefined,
       cache: 'no-store',
     });
@@ -81,11 +123,10 @@ export const apiClient = {
   },
 
   async put<T>(endpoint: string, body?: any): Promise<ApiResponse<T>> {
+    const headers = await buildHeaders(true);
     const response = await fetch(`${API_BASE}${endpoint}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: body ? JSON.stringify(body) : undefined,
       cache: 'no-store',
     });
@@ -104,11 +145,10 @@ export const apiClient = {
       });
     }
 
+    const headers = await buildHeaders(true);
     const response = await fetch(url.toString(), {
       method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       cache: 'no-store',
     });
 
