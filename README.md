@@ -1,362 +1,367 @@
-# Jewellery E-commerce Store
+# Adorné Luxe Jewels - E-commerce Platform
 
-A modern, high-performance e-commerce application built with Next.js 16, TypeScript, Tailwind CSS, shadcn/ui, and Aceternity UI components.
+A modern, high-performance jewellery e-commerce application built with Next.js 16, TypeScript, Tailwind CSS, and shadcn/ui components.
 
-## 📦 Previous Version
+**Live Site**: [https://adorneluxejewels.com](https://adorneluxejewels.com)  
+**Staging**: [https://staging.adorneluxejewels.com](https://staging.adorneluxejewels.com)  
+**Repository**: [https://github.com/Michaelanand123singh/jewellery](https://github.com/Michaelanand123singh/jewellery)
 
-The legacy static version of this application is available at:
-- **Live URL**: [https://jewellery-ecom-static.netlify.app/index.html](https://jewellery-ecom-static.netlify.app/index.html)
-- **GitHub Branch**: `oldmasterbranch` - Contains the previous static HTML/CSS/JS implementation
-
-The current repository (Next.js version) is on the `master` branch.
-
-## Features
+## ✨ Features
 
 - 🛍️ **Product Catalog** - Browse and filter products by category, price, and more
 - 🛒 **Shopping Cart** - Add, remove, and manage items in your cart
 - ❤️ **Wishlist** - Save your favorite products for later
 - 👤 **User Accounts** - Create an account and manage your profile
-- 💳 **Checkout** - Secure checkout process with multiple payment options
+- 💳 **Checkout** - Secure checkout with Razorpay integration
+- 📦 **Order Management** - Track orders with Shiprocket logistics
+- 📧 **Email Notifications** - Order confirmations and status updates
+- 🎨 **Admin Panel** - Complete admin dashboard for managing products, orders, and settings
 - 📱 **Responsive Design** - Fully responsive design that works on all devices
-- 🎨 **Modern UI** - Beautiful, modern interface with smooth animations
 - ⚡ **Performance** - Optimized for speed and SEO
 
-## Tech Stack
+## 🛠️ Tech Stack
 
 - **Framework**: Next.js 16 (App Router)
 - **Language**: TypeScript
+- **Database**: PostgreSQL 16
+- **Cache**: Redis 7
+- **Storage**: MinIO (Object Storage)
 - **Styling**: Tailwind CSS
 - **UI Components**: shadcn/ui
 - **Animations**: Framer Motion
 - **State Management**: Zustand
-- **Icons**: Lucide React
+- **Payment**: Razorpay
+- **Logistics**: Shiprocket
+- **Email**: Nodemailer (SMTP)
+- **Containerization**: Docker & Docker Compose
 
-## DevOps Course Notes (Our Implementation)
-
-### Branching workflow
-- `master` = stable branch (release/deploy)
-- `dev` = integration branch
-- Feature branches: `feature/<name>` → Pull Request into `dev`
-
-### Local run (Docker Compose)
-```bash
-docker compose -f docker-compose.dev.yml up --build
-
-
-## Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
 
-- Node.js 18+ and npm/yarn, OR
-- Docker and Docker Compose
+- Node.js 20+ and npm
+- Docker and Docker Compose (recommended)
+- PostgreSQL 16 (if not using Docker)
 
-### Option 1: Running with Docker (Recommended)
-
-Docker is the easiest way to run the application locally with PostgreSQL.
-
-#### Quick Start with Docker Compose
-
-1. **Run the entire application (PostgreSQL + Next.js):**
-```bash
-# Development mode (with hot reload)
-docker-compose -f docker-compose.dev.yml up
-
-# Production mode
-docker-compose up
-```
-
-2. Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-The application will:
-- Automatically start PostgreSQL
-- Run database migrations
-- Seed the database (dev mode only)
-- Start the Next.js server
-
-#### Running PostgreSQL Only with Docker
-
-If you want to run only PostgreSQL with Docker and run the Next.js app locally:
+### Local Development with Docker
 
 ```bash
-# Start PostgreSQL container
-docker run --name jewellery_postgres \
-  -e POSTGRES_USER=jewellery_user \
-  -e POSTGRES_PASSWORD=jewellery_password \
-  -e POSTGRES_DB=jewellery_db \
-  -p 5432:5432 \
-  -d postgres:16-alpine
-```
+# Clone the repository
+git clone https://github.com/Michaelanand123singh/jewellery.git
+cd jewellery
 
-Or using Docker Compose:
-```bash
-# Start only PostgreSQL service
-docker-compose up postgres -d
-```
-
-Then set your `DATABASE_URL` environment variable:
-```bash
-export DATABASE_URL="postgresql://jewellery_user:jewellery_password@localhost:5432/jewellery_db?schema=public"
-```
-
-#### Other PostgreSQL Options
-
-**Using Homebrew (macOS):**
-```bash
-brew install postgresql@16
-brew services start postgresql@16
-createdb jewellery_db
-```
-
-**Using apt (Ubuntu/Debian):**
-```bash
-sudo apt update
-sudo apt install postgresql postgresql-contrib
-sudo systemctl start postgresql
-sudo -u postgres createdb jewellery_db
-```
-
-**Using PostgreSQL official installer:**
-Download from [postgresql.org](https://www.postgresql.org/download/) and follow installation instructions for your OS.
-
-### Option 2: Manual Installation (Without Docker)
-
-1. **Install dependencies:**
-```bash
-npm install
-```
-
-2. **Set up environment variables:**
-```bash
+# Copy environment file
 cp env.example .env
-# Edit .env and set your DATABASE_URL and JWT_SECRET
+
+# Start development environment
+docker-compose -f docker-compose.dev.yml up --build
+
+# Access the application
+# Frontend: http://localhost:3000
+# MinIO Console: http://localhost:9001
 ```
 
-3. **Set up the database:**
+### Local Development without Docker
+
 ```bash
+# Install dependencies
+npm install
+
+# Set up environment variables
+cp env.example .env
+# Edit .env with your database credentials
+
 # Generate Prisma Client
 npm run db:generate
 
-# Run migrations
+# Run database migrations
 npm run db:migrate
 
-# Seed the database (optional)
+# Seed database (optional)
 npm run db:seed
-```
 
-4. **Copy images to public directory:**
-```bash
-# Images should be in public/img/
-```
-
-5. **Run the development server:**
-```bash
+# Start development server
 npm run dev
 ```
 
-6. Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-## Project Structure
-
-```
-├── app/                    # Next.js app directory
-│   ├── page.tsx           # Home page
-│   ├── shop/              # Shop page
-│   ├── products/          # Product details
-│   ├── cart/              # Shopping cart
-│   ├── checkout/          # Checkout page
-│   ├── wishlist/          # Wishlist page
-│   ├── login/             # Login page
-│   ├── register/          # Registration page
-│   ├── contact/           # Contact page
-│   └── account/           # User account page
-├── components/            # React components
-│   ├── ui/               # shadcn/ui components
-│   ├── layout/           # Layout components (Header, Footer)
-│   └── home/             # Home page components
-├── lib/                   # Utilities and stores
-│   ├── store.ts          # Zustand stores (cart, wishlist)
-│   ├── utils.ts          # Utility functions
-│   └── data.ts           # Mock product data
-└── public/                # Static assets
-    └── img/              # Product images
-```
-
-## Available Scripts
+## 📦 Available Scripts
 
 - `npm run dev` - Start development server
 - `npm run build` - Build for production
 - `npm run start` - Start production server
 - `npm run lint` - Run ESLint
+- `npm test` - Run tests
 - `npm run db:generate` - Generate Prisma Client
-- `npm run db:push` - Push schema to database
 - `npm run db:migrate` - Run database migrations
-- `npm run db:studio` - Open Prisma Studio
 - `npm run db:seed` - Seed the database
+- `npm run db:studio` - Open Prisma Studio
 
-## Docker Configuration
+## 🔧 Environment Variables
 
-### Overview
+Create a `.env` file based on `env.example`. Key variables:
 
-The project includes Docker configuration for both development and production environments:
+### Required
+- `DATABASE_URL` - PostgreSQL connection string
+- `JWT_SECRET` - Minimum 32 characters
+- `NEXT_PUBLIC_APP_URL` - Your application URL
 
-- **Development**: `docker-compose.dev.yml` + `Dockerfile.dev` - Hot reload, development tools
-- **Production**: `docker-compose.yml` + `Dockerfile` - Optimized multi-stage build
+### Optional (for full functionality)
+- `RAZORPAY_KEY_ID` & `RAZORPAY_KEY_SECRET` - Payment processing
+- `SHIPROCKET_EMAIL` & `SHIPROCKET_PASSWORD` - Shipping/logistics
+- `GOOGLE_CLIENT_ID` & `GOOGLE_CLIENT_SECRET` - Google OAuth login
+- `REDIS_URL` - Redis connection (for caching)
+- `MINIO_*` - MinIO configuration (for file storage)
 
-### Environment Variables
+**Note**: Email settings are configured through the admin panel (Settings → Email), not environment variables.
 
-For production deployments, make sure to update the following in `docker-compose.yml`:
+## 🐳 Docker Configuration
 
-- `JWT_SECRET`: Change to a strong random secret (minimum 32 characters)
-- `DATABASE_URL`: Update if using different database credentials
-- `NODE_ENV`: Set to `production` for production deployments
-
-You can also create a `.env` file in the project root and docker-compose will automatically load it:
-
+### Development
 ```bash
-# .env
-JWT_SECRET=your-production-secret-here
-DATABASE_URL=postgresql://user:password@postgres:5432/jewellery_db?schema=public
-NODE_ENV=production
-```
-
-### Docker Configuration Details
-
-#### Production Dockerfile (`Dockerfile`)
-- ✅ Multi-stage build (deps → builder → runner)
-- ✅ Uses Node.js 20 Alpine for smaller image size
-- ✅ Generates Prisma Client during build
-- ✅ Runs production build with `npm run build`
-- ✅ Uses non-root user for security
-- ✅ Copies standalone output from `.next/standalone` directory
-- ✅ Includes Prisma schema for runtime migrations
-- ✅ **Verified**: `next.config.ts` has `output: 'standalone'` configured correctly
-
-#### Development Dockerfile (`Dockerfile.dev`)
-- ✅ Single-stage build for faster iteration
-- ✅ Includes dev dependencies
-- ✅ Hot reload enabled
-- ✅ Volume mounts for live code changes
-
-#### Docker Compose Production (`docker-compose.yml`)
-- ✅ PostgreSQL 16 Alpine with health checks
-- ✅ App depends on postgres health
-- ✅ Auto-runs Prisma migrations on startup
-- ✅ Persistent data volumes
-- ✅ Production environment variables
-
-#### Docker Compose Development (`docker-compose.dev.yml`)
-- ✅ Separate dev database volume
-- ✅ Volume mounts for live code changes
-- ✅ Auto-seeds database on first run
-- ✅ Development environment with hot reload
-
-## Docker Commands
-
-### Development Mode
-
-```bash
-# Start services in development mode
 docker-compose -f docker-compose.dev.yml up
-
-# Start in background (detached mode)
-docker-compose -f docker-compose.dev.yml up -d
-
-# View logs
-docker-compose -f docker-compose.dev.yml logs -f
-
-# Stop services
-docker-compose -f docker-compose.dev.yml down
-
-# Rebuild and start
-docker-compose -f docker-compose.dev.yml up --build
 ```
 
-### Production Mode
-
+### Production
 ```bash
-# Build and start services
 docker-compose up --build
+```
 
-# Start in background
-docker-compose up -d
+### Services
+- **PostgreSQL**: Port 5432
+- **Redis**: Port 6379
+- **MinIO API**: Port 9000
+- **MinIO Console**: Port 9001
+- **Next.js App**: Port 3000
 
-# View logs
-docker-compose logs -f
+## 🚢 Deployment
 
-# Stop services
+### Environments
+
+- **Staging**: `staging.adorneluxejewels.com` (auto-deploys on push to `staging` branch)
+- **Production**: `adorneluxejewels.com` (auto-deploys on push to `main` branch)
+
+### CI/CD with GitHub Actions
+
+The project includes automated CI/CD pipelines:
+
+1. **Staging Deployment**: Automatically deploys when code is pushed to `staging` branch
+2. **Production Deployment**: Automatically deploys when code is pushed to `main` branch
+
+#### Setup GitHub Secrets
+
+Configure these secrets in GitHub (Settings → Secrets and variables → Actions):
+
+- `STAGING_HOST` - Staging server IP/domain
+- `STAGING_SSH_KEY` - SSH private key for staging
+- `STAGING_SSH_USER` - SSH username (usually `root`)
+- `PRODUCTION_HOST` - Production server IP/domain
+- `PRODUCTION_SSH_KEY` - SSH private key for production
+- `PRODUCTION_SSH_USER` - SSH username (usually `root`)
+
+#### Generate SSH Key for GitHub Actions
+
+On your VPS server:
+```bash
+ssh-keygen -t ed25519 -C "github-actions-deploy" -f ~/.ssh/github_actions_deploy -N ""
+cat ~/.ssh/github_actions_deploy.pub >> ~/.ssh/authorized_keys
+cat ~/.ssh/github_actions_deploy  # Copy this to GitHub Secrets
+```
+
+#### Deployment Scripts
+
+Create these scripts on your VPS server:
+
+**`/root/deploy-staging.sh`**:
+```bash
+#!/bin/bash
+set -e
+cd /var/www/staging
+git fetch origin
+git reset --hard origin/staging
+docker-compose -f docker-compose.staging.yml down
+docker-compose -f docker-compose.staging.yml build --no-cache app
+docker-compose -f docker-compose.staging.yml up -d
+docker-compose -f docker-compose.staging.yml exec -T app npx prisma migrate deploy || true
+```
+
+**`/root/deploy-production.sh`**:
+```bash
+#!/bin/bash
+set -e
+cd /var/www/production
+git fetch origin
+git reset --hard origin/main
+docker-compose build --no-cache app
+docker-compose up -d --no-deps app
+docker-compose exec -T app npx prisma migrate deploy || true
+```
+
+Make them executable:
+```bash
+chmod +x /root/deploy-staging.sh
+chmod +x /root/deploy-production.sh
+```
+
+### Manual Deployment
+
+**Staging:**
+```bash
+cd /var/www/staging
+git pull origin staging
+docker-compose -f docker-compose.staging.yml up -d --build
+```
+
+**Production:**
+```bash
+cd /var/www/production
+git pull origin main
+docker-compose up -d --build --no-deps app
+```
+
+## 📁 Project Structure
+
+```
+├── app/                    # Next.js app directory
+│   ├── (admin)/           # Admin routes
+│   ├── (auth)/            # Authentication routes
+│   ├── (public)/          # Public routes
+│   ├── (user)/            # User routes
+│   └── api/               # API routes
+├── components/            # React components
+│   ├── admin/            # Admin components
+│   ├── ui/               # shadcn/ui components
+│   └── layout/           # Layout components
+├── src/                  # Source code
+│   ├── domains/          # Domain logic
+│   ├── infrastructure/   # Infrastructure code
+│   └── shared/           # Shared utilities
+├── prisma/               # Database schema and migrations
+├── public/               # Static assets
+└── scripts/              # Utility scripts
+```
+
+## 🔐 Security
+
+- JWT-based authentication
+- CSRF protection
+- Password hashing with bcrypt
+- SQL injection prevention (Prisma)
+- XSS protection
+- Secure headers configured
+- Environment variable validation
+
+## 📧 Email Configuration
+
+Email service is configured through the admin panel:
+
+1. Go to Admin Panel → Settings → Email
+2. Configure SMTP settings:
+   - SMTP Host (e.g., `smtp.gmail.com`)
+   - SMTP Port (e.g., `587` for TLS)
+   - SMTP Username and Password
+   - From Email and Name
+3. Test email configuration
+
+**Supported Email Events:**
+- User registration welcome email
+- Order confirmation email
+- Order status update emails (shipped, delivered, etc.)
+
+## 💳 Payment Integration
+
+- **Razorpay**: Configure in admin panel (Settings → Payment)
+- Supports both online payments and Cash on Delivery (COD)
+- Payment webhooks for status updates
+- Automatic payment reconciliation
+
+## 📦 Shipping Integration
+
+- **Shiprocket**: Configure in admin panel (Settings → Shipping)
+- Automatic shipment creation
+- Tracking integration
+- Webhook support for status updates
+
+## 🧪 Testing
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage
+npm run test:coverage
+```
+
+## 📝 Database Management
+
+```bash
+# Generate Prisma Client
+npm run db:generate
+
+# Create a new migration
+npm run db:migrate
+
+# Apply migrations (production)
+npx prisma migrate deploy
+
+# Open Prisma Studio
+npm run db:studio
+
+# Seed database
+npm run db:seed
+```
+
+## 🔍 Health Check
+
+The application includes a health check endpoint:
+
+```
+GET /api/health
+```
+
+Returns application and database health status.
+
+## 🛠️ Troubleshooting
+
+### Build Issues
+```bash
+# Clear Next.js cache
+rm -rf .next
+npm run build
+```
+
+### Database Connection Issues
+```bash
+# Check database connection
+docker-compose ps postgres
+docker-compose logs postgres
+```
+
+### Docker Issues
+```bash
+# Rebuild containers
 docker-compose down
-
-# Stop and remove volumes (clean slate)
-docker-compose down -v
+docker-compose up --build
 ```
 
-### Database Only
-
-```bash
-# Start only PostgreSQL
-docker-compose up postgres -d
-
-# Stop PostgreSQL
-docker-compose stop postgres
-
-# Remove PostgreSQL container and volume
-docker-compose down postgres -v
-```
-
-### Cleanup
-
-```bash
-# Remove all containers, networks, and volumes
-docker-compose -f docker-compose.dev.yml down -v
-docker-compose down -v
-
-# Remove unused Docker resources
-docker system prune -a
-```
-
-## Features in Detail
-
-### Product Pages
-- Product listing with filters and sorting
-- Product details with image gallery
-- Product reviews and ratings
-- Related products
-
-### Shopping Experience
-- Persistent shopping cart (localStorage)
-- Wishlist functionality
-- Quick add to cart from product cards
-- Cart quantity management
-
-### User Features
-- User authentication (login/register)
-- User account management
-- Order history
-- Saved addresses
-- Payment methods
-
-### Modern UI Features
-- Smooth page transitions
-- Hover effects on products
-- Animated hero section
-- Responsive navigation
-- Mobile-friendly design
-
-## Customization
-
-### Colors
-Edit the color variables in `app/globals.css` to customize the theme.
-
-### Products
-Update the `mockProducts` array in `lib/data.ts` or connect to your API.
-
-### Store Configuration
-Modify the Zustand stores in `lib/store.ts` to customize cart and wishlist behavior.
-
-## License
+## 📄 License
 
 MIT License - feel free to use this project for your own purposes.
 
-## Support
+## 🤝 Contributing
 
-For issues and questions, please open an issue on GitHub.
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📞 Support
+
+For issues and questions, please open an issue on [GitHub](https://github.com/Michaelanand123singh/jewellery/issues).
+
+---
+
+**Built with ❤️ for Adorné Luxe Jewels**
