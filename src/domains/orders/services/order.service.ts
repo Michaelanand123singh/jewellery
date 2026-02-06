@@ -7,6 +7,7 @@ import { ProductRepository } from '@/src/domains/products/repositories/product.r
 import { ProductVariantRepository } from '@/src/domains/products/repositories/variant.repository';
 import { InventoryRepository } from '@/src/domains/inventory/repositories/inventory.repository';
 import { CartRepository } from '@/src/domains/cart/repositories/cart.repository';
+import { UserRepository } from '@/src/domains/auth/repositories/user.repository';
 import {
   Order,
   CreateOrderData,
@@ -19,6 +20,9 @@ import { NotFoundError, ValidationError } from '@/src/shared/utils/errors';
 import { OrderStatus } from '@/src/shared/constants/order-status';
 import { canTransitionOrder } from '@/src/shared/constants/order-status';
 import { prisma } from '@/src/infrastructure/database/prisma';
+import { EmailService } from '@/src/shared/services/email.service';
+import { EmailTemplatesService } from '@/src/shared/services/email-templates.service';
+import { logger } from '@/src/shared/utils/logger';
 
 export class OrderService {
   private orderRepository: OrderRepository;
@@ -26,6 +30,7 @@ export class OrderService {
   private variantRepository: ProductVariantRepository;
   private inventoryRepository: InventoryRepository;
   private cartRepository: CartRepository;
+  private userRepository: UserRepository;
 
   constructor() {
     this.orderRepository = new OrderRepository();
@@ -33,6 +38,7 @@ export class OrderService {
     this.variantRepository = new ProductVariantRepository();
     this.inventoryRepository = new InventoryRepository();
     this.cartRepository = new CartRepository();
+    this.userRepository = new UserRepository();
   }
 
   async getOrderById(id: string, userId?: string): Promise<Order> {
@@ -46,7 +52,8 @@ export class OrderService {
       throw new NotFoundError('Order');
     }
 
-    return order;
+    // Transform product image URLs in order items
+    return this.transformOrderImages(order);
   }
 
   async getOrdersByUserId(
@@ -57,7 +64,10 @@ export class OrderService {
     const limit = pagination?.limit ?? 20;
     const totalPages = Math.ceil(total / limit);
 
-    return { orders, total, totalPages };
+    // Transform product image URLs in all orders
+    const transformedOrders = orders.map(order => this.transformOrderImages(order));
+
+    return { orders: transformedOrders, total, totalPages };
   }
 
   async getAllOrders(
@@ -69,7 +79,59 @@ export class OrderService {
     const limit = pagination?.limit ?? 20;
     const totalPages = Math.ceil(total / limit);
 
-    return { orders, total, totalPages };
+    // Transform product image URLs in all orders
+    const transformedOrders = orders.map(order => this.transformOrderImages(order));
+
+    return { orders: transformedOrders, total, totalPages };
+  }
+
+  /**
+   * Transform product image URLs in order items to use proxy
+   */
+  private transformOrderImages(order: Order): Order {
+    return {
+      ...order,
+      orderItems: order.orderItems.map(item => ({
+        ...item,
+        product: item.product ? {
+          ...item.product,
+          image: item.product.image ? this.transformImageUrl(item.product.image) : item.product.image,
+        } : item.product,
+      })),
+    };
+  }
+
+  /**
+   * Transform image URL to use proxy for frontend access
+   */
+  private transformImageUrl(url: string): string {
+    if (!url) return url;
+    
+    // Check if it's a MinIO URL
+    const config = {
+      publicUrl: process.env.MINIO_PUBLIC_URL || 'http://localhost:9000',
+      bucketName: process.env.MINIO_BUCKET_NAME || 'products',
+    };
+    
+    if (url.includes(config.publicUrl) || url.includes('/' + config.bucketName + '/')) {
+      // Import dynamically to avoid circular dependencies
+      const { getProxyUrl } = require('@/lib/storage');
+      return getProxyUrl(url);
+    }
+    
+    // For relative paths starting with /, assume they're already proxy URLs or public paths
+    if (url.startsWith('/')) {
+      return url;
+    }
+    
+    // For external URLs (http/https), return as-is
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    
+    // For storage keys without URL, convert to proxy URL
+    const { getProxyUrl } = require('@/lib/storage');
+    return getProxyUrl(url);
   }
 
   async createOrder(data: CreateOrderData): Promise<Order> {
@@ -163,6 +225,14 @@ export class OrderService {
             },
           },
           address: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phone: true,
+            },
+          },
         },
       });
 
@@ -251,7 +321,124 @@ export class OrderService {
       return newOrder;
     });
 
-    return order as Order;
+    // Get user information for email
+    const user = await this.userRepository.findById(data.userId);
+    if (!user) {
+      throw new NotFoundError('User');
+    }
+
+    // Send order confirmation email (non-blocking)
+    this.sendOrderConfirmationEmail(order as Order, user.email, user.name || 'Customer').catch((error) => {
+      logger.error('Failed to send order confirmation email', {
+        orderId: order.id,
+        userId: data.userId,
+        email: user.email,
+        error: error.message,
+      });
+    });
+
+    // Transform product image URLs in order items
+    return this.transformOrderImages(order as Order);
+  }
+
+  /**
+   * Send order confirmation email
+   */
+  private async sendOrderConfirmationEmail(
+    order: Order,
+    customerEmail: string,
+    customerName: string
+  ): Promise<void> {
+    try {
+      const emailService = new EmailService();
+      const isConfigured = await emailService.isEmailConfigured();
+      
+      if (!isConfigured) {
+        logger.warn('Order confirmation email not sent - email service not configured', {
+          orderId: order.id,
+          email: customerEmail,
+        });
+        return;
+      }
+
+      if (!order.address) {
+        logger.warn('Order confirmation email not sent - address not found', {
+          orderId: order.id,
+        });
+        return;
+      }
+
+      // Format order items
+      const items = order.orderItems.map((item) => ({
+        productName: item.product?.name || 'Product',
+        quantity: item.quantity,
+        price: item.price,
+      }));
+
+      // Format payment method
+      const paymentMethodMap: Record<string, string> = {
+        COD: 'Cash on Delivery',
+        RAZORPAY: 'Online Payment (Razorpay)',
+        STRIPE: 'Online Payment (Stripe)',
+        PAYPAL: 'PayPal',
+      };
+      const paymentMethod = paymentMethodMap[order.paymentMethod] || order.paymentMethod;
+
+      // Format order status
+      const statusMap: Record<string, string> = {
+        PENDING: 'Pending',
+        CONFIRMED: 'Confirmed',
+        PROCESSING: 'Processing',
+        SHIPPED: 'Shipped',
+        DELIVERED: 'Delivered',
+        CANCELLED: 'Cancelled',
+        REFUNDED: 'Refunded',
+      };
+      const orderStatus = statusMap[order.status] || order.status;
+
+      const template = EmailTemplatesService.generateOrderConfirmationEmail({
+        orderNumber: order.id,
+        customerName,
+        customerEmail,
+        orderDate: new Date(order.createdAt).toLocaleString('en-IN', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+        items,
+        subtotal: order.subtotal,
+        shipping: order.shipping,
+        tax: order.tax,
+        total: order.total,
+        shippingAddress: {
+          name: order.address.fullName,
+          address: `${order.address.addressLine1}${order.address.addressLine2 ? `, ${order.address.addressLine2}` : ''}`,
+          city: order.address.city,
+          state: order.address.state,
+          postalCode: order.address.postalCode,
+          country: order.address.country,
+          phone: order.address.phone,
+        },
+        paymentMethod,
+        orderStatus,
+      });
+
+      await emailService.sendEmail({
+        to: customerEmail,
+        subject: `Order Confirmation - ${order.id}`,
+        html: template.html,
+        text: template.text,
+      });
+    } catch (error: any) {
+      // Log but don't throw - email failure shouldn't break order creation
+      logger.error('Error sending order confirmation email', {
+        orderId: order.id,
+        email: customerEmail,
+        error: error.message,
+      });
+    }
   }
 
   async updateOrderStatus(
@@ -259,6 +446,7 @@ export class OrderService {
     data: UpdateOrderStatusData
   ): Promise<Order> {
     const order = await this.getOrderById(id);
+    const previousStatus = order.status;
 
     // Validate status transition
     if (data.status && !canTransitionOrder(order.status, data.status)) {
@@ -267,7 +455,144 @@ export class OrderService {
       );
     }
 
-    return this.orderRepository.updateStatus(id, data);
+    const updatedOrder = await this.orderRepository.updateStatus(id, data);
+    // Re-fetch to get full order with relations
+    const fullOrder = await this.orderRepository.findById(updatedOrder.id);
+    if (!fullOrder) {
+      throw new NotFoundError('Order');
+    }
+
+    // Send status update email if status changed
+    if (data.status && data.status !== previousStatus && fullOrder.user) {
+      this.sendOrderStatusUpdateEmail(
+        fullOrder as Order,
+        previousStatus,
+        data.status,
+        fullOrder.user.email,
+        fullOrder.user.name || 'Customer'
+      ).catch((error) => {
+        logger.error('Failed to send order status update email', {
+          orderId: fullOrder.id,
+          userId: fullOrder.userId,
+          email: fullOrder.user?.email,
+          previousStatus,
+          newStatus: data.status,
+          error: error.message,
+        });
+      });
+    }
+
+    // Transform product image URLs
+    return this.transformOrderImages(fullOrder);
+  }
+
+  /**
+   * Send order status update email
+   */
+  private async sendOrderStatusUpdateEmail(
+    order: Order,
+    previousStatus: string,
+    newStatus: string,
+    customerEmail: string,
+    customerName: string
+  ): Promise<void> {
+    try {
+      const emailService = new EmailService();
+      const isConfigured = await emailService.isEmailConfigured();
+      
+      if (!isConfigured) {
+        logger.warn('Order status update email not sent - email service not configured', {
+          orderId: order.id,
+          email: customerEmail,
+          newStatus,
+        });
+        return;
+      }
+
+      // Get tracking information if available (from shipment/logistics)
+      let trackingUrl: string | undefined;
+      let trackingNumber: string | undefined;
+
+      // Try to get tracking info from shipment if order is shipped
+      if (newStatus === OrderStatus.SHIPPED || newStatus === OrderStatus.DELIVERED) {
+        try {
+          // Check if there's a shipment with tracking info
+          const shipment = await prisma.shipment.findFirst({
+            where: { orderId: order.id },
+            orderBy: { createdAt: 'desc' },
+          });
+          
+          if (shipment?.awbNumber) {
+            trackingNumber = shipment.awbNumber;
+            // Generate tracking URL if available
+            if (shipment.trackingUrl) {
+              trackingUrl = shipment.trackingUrl;
+            } else if (process.env.NEXT_PUBLIC_APP_URL) {
+              trackingUrl = `${process.env.NEXT_PUBLIC_APP_URL}/tracking?awb=${shipment.awbNumber}`;
+            }
+          }
+        } catch (error) {
+          // Log but don't fail - tracking info is optional
+          logger.debug('Could not fetch tracking information for order status email', {
+            orderId: order.id,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+        }
+      }
+
+      // Format order items
+      const items = order.orderItems.map((item) => ({
+        productName: item.product?.name || 'Product',
+        quantity: item.quantity,
+        price: item.price,
+      }));
+
+      const template = EmailTemplatesService.generateOrderStatusUpdateEmail({
+        orderNumber: order.id,
+        customerName,
+        customerEmail,
+        previousStatus,
+        newStatus,
+        orderDate: new Date(order.createdAt).toLocaleString('en-IN', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+        items,
+        total: order.total,
+        trackingUrl,
+        trackingNumber,
+      });
+
+      // Status-specific subject lines
+      const statusSubjects: Record<string, string> = {
+        CONFIRMED: `Order Confirmed - ${order.id}`,
+        PROCESSING: `Your Order is Being Processed - ${order.id}`,
+        SHIPPED: `Your Order Has Shipped! - ${order.id}`,
+        DELIVERED: `Your Order Has Been Delivered - ${order.id}`,
+        CANCELLED: `Order Cancellation - ${order.id}`,
+        RETURNED: `Order Return Processed - ${order.id}`,
+      };
+      const subject = statusSubjects[newStatus] || `Order Status Update - ${order.id}`;
+
+      await emailService.sendEmail({
+        to: customerEmail,
+        subject,
+        html: template.html,
+        text: template.text,
+      });
+    } catch (error: any) {
+      // Log but don't throw - email failure shouldn't break status update
+      logger.error('Error sending order status update email', {
+        orderId: order.id,
+        email: customerEmail,
+        previousStatus,
+        newStatus,
+        error: error.message,
+      });
+    }
   }
 }
 

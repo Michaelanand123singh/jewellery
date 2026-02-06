@@ -33,11 +33,15 @@ async function handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
   const data = await response.json();
 
   if (!response.ok) {
-    throw new ApiError(
+    // Create error with status code for proper handling
+    const error = new ApiError(
       data.error || 'An error occurred',
       response.status,
       data.errors
     );
+    // Attach status to error object for easy checking
+    (error as any).status = response.status;
+    throw error;
   }
 
   return data;

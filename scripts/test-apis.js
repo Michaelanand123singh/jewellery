@@ -131,9 +131,16 @@ async function testAuthLogin() {
   }
 
   // Use admin credentials
+  // ⚠️ SECURITY: Require ADMIN_PASSWORD environment variable - no fallback passwords
+  if (!process.env.ADMIN_PASSWORD) {
+    log('❌ ERROR: ADMIN_PASSWORD environment variable is required for testing', 'red');
+    log('   Please set ADMIN_PASSWORD in your .env file', 'yellow');
+    process.exit(1);
+  }
+  
   const adminCreds = credentials?.find(c => c.role === 'ADMIN') || {
     email: 'admin@jewellery.com',
-    password: process.env.ADMIN_PASSWORD || 'Admin@123',
+    password: process.env.ADMIN_PASSWORD,
   };
 
   log(`Testing login with admin credentials (${adminCreds.email})...`, 'blue');
@@ -163,31 +170,43 @@ async function testAuthLogin() {
   }
 
   // Test user login
+  // ⚠️ SECURITY: Require TEST_USER_PASSWORD environment variable - no fallback passwords
+  if (!process.env.TEST_USER_PASSWORD) {
+    log('⚠️  WARNING: TEST_USER_PASSWORD not set, skipping user login tests', 'yellow');
+    log('   Set TEST_USER_PASSWORD in .env to test user authentication', 'yellow');
+  }
+  
   const userCreds = credentials?.find(c => c.role === 'USER') || {
     email: 'user@example.com',
-    password: process.env.TEST_USER_PASSWORD || 'User@123',
+    password: process.env.TEST_USER_PASSWORD || null,
   };
-
-  log(`Testing login with user credentials (${userCreds.email})...`, 'blue');
-  const userLogin = await makeRequest('POST', '/auth/login', {
-    body: { email: userCreds.email, password: userCreds.password },
-  });
-
-  if (userLogin.ok && userLogin.data?.success) {
-    // Try to get token from response data first, then from cookie
-    authToken = userLogin.data?.data?.token ||
-                userLogin.headers['set-cookie']?.split('auth-token=')[1]?.split(';')[0] ||
-                null;
-    logTest('User login successful', 'PASS');
-    if (authToken) {
-      cookieJar = `auth-token=${authToken}`;
-    }
+  
+  if (!userCreds.password) {
+    log('Skipping user authentication tests (no password provided)', 'yellow');
+    // Skip user login test if password not available
   } else {
-    logTest(
-      'User login',
-      'FAIL',
-      `Status: ${userLogin.status}, Error: ${JSON.stringify(userLogin.data)}`
-    );
+    log(`Testing login with user credentials (${userCreds.email})...`, 'blue');
+    const userLogin = await makeRequest('POST', '/auth/login', {
+      body: { email: userCreds.email, password: userCreds.password },
+    });
+
+    if (userLogin.ok && userLogin.data?.success) {
+      // Try to get token from response data first, then from cookie
+      authToken = userLogin.data?.data?.token ||
+                  userLogin.headers['set-cookie']?.split('auth-token=')[1]?.split(';')[0] ||
+                  null;
+      logTest('User login successful', 'PASS');
+      log(`User token obtained: ${authToken ? 'Yes' : 'No (using cookies)'}`, 'yellow');
+      if (authToken) {
+        cookieJar = `auth-token=${authToken}`;
+      }
+    } else {
+      logTest(
+        'User login',
+        'FAIL',
+        `Status: ${userLogin.status}, Error: ${JSON.stringify(userLogin.data)}`
+      );
+    }
   }
 
   // Test /auth/me endpoint (use cookies if token not available)

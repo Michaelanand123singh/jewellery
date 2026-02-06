@@ -438,14 +438,14 @@ function OrderManagementContent() {
       {/* Filters */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
               <Filter className="h-5 w-5" />
               Filters
             </CardTitle>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
               {hasActiveFilters && (
-                <Button variant="outline" size="sm" onClick={clearFilters}>
+                <Button variant="outline" size="sm" onClick={clearFilters} className="flex-1 sm:flex-initial">
                   <X className="h-4 w-4 mr-2" />
                   Clear
                 </Button>
@@ -455,6 +455,7 @@ function OrderManagementContent() {
                 size="sm"
                 onClick={handleExport}
                 disabled={exporting || loading}
+                className="flex-1 sm:flex-initial"
               >
                 {exporting ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />

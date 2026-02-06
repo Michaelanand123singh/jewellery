@@ -3,6 +3,8 @@ import { Jost } from "next/font/google";
 import { Toaster } from "sonner";
 import "./globals.css";
 import { CartWishlistSync } from "@/components/providers/CartWishlistSync";
+import { FirstVisitLoginModal } from "@/components/auth/FirstVisitLoginModal";
+import { AuthRequiredProvider } from "@/components/providers/AuthRequiredProvider";
 
 const jost = Jost({ 
   subsets: ["latin"],
@@ -24,9 +26,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${jost.variable} ${jost.className} font-sans`}>
-        <CartWishlistSync />
-        {children}
-        <Toaster position="bottom-right" richColors />
+        <AuthRequiredProvider>
+          <CartWishlistSync />
+          <FirstVisitLoginModal />
+          {children}
+          <Toaster position="bottom-right" richColors />
+        </AuthRequiredProvider>
       </body>
     </html>
   );

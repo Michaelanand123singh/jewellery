@@ -34,6 +34,11 @@ import {
 import { cn } from "@/lib/utils";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { PageHeader } from "@/components/ui/page-header";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ProductCardSkeleton } from "@/components/ui/loading-skeleton";
+import { Package } from "lucide-react";
 
 // Category type used for shop sidebar (from /api/v1/categories?tree=true)
 interface ShopCategory {
@@ -222,19 +227,18 @@ function ShopPageContent() {
     };
   }, []);
 
-  // Fetch categories for sidebar (managed from admin panel)
+  // Fetch categories for sidebar
   useEffect(() => {
     const fetchSidebarCategories = async () => {
       try {
         const response = await apiClient.get<ShopCategory[]>("/categories", { tree: "true" });
-        if (response.success && response.data) {
+        
+        if (response.success && response.data && Array.isArray(response.data)) {
           const flat: ShopCategory[] = [];
 
+          // Flatten the tree structure for sidebar display
           const walk = (node: ShopCategory) => {
-            // For now, reuse showInNav as the admin-controlled flag
-            if (node.showInNav) {
-              flat.push(node);
-            }
+            flat.push(node);
             if (node.children && node.children.length > 0) {
               node.children.forEach(walk);
             }
@@ -242,9 +246,12 @@ function ShopPageContent() {
 
           response.data.forEach(walk);
           setSidebarCategories(flat);
+        } else {
+          setSidebarCategories([]);
         }
       } catch (error) {
         console.error("Failed to fetch sidebar categories:", error);
+        setSidebarCategories([]);
       }
     };
 
@@ -442,50 +449,31 @@ function ShopPageContent() {
     updateURL({ onSale: checked ? "true" : null });
   };
 
-  // Breadcrumbs - matching image style
-  const breadcrumbs = [
-    { label: "Home", href: "/" },
-    { label: "Accessories", href: "/shop?category=accessories" },
-    { label: category ? (categoryMap[category] || category) : "Jewellery", href: null },
+  // Breadcrumbs
+  const breadcrumbItems = [
+    { label: "Shop", href: "/shop" },
+    ...(category ? [{ label: categoryMap[category] || category, href: undefined }] : []),
   ];
+
+  const pageTitle = category 
+    ? `${categoryMap[category] || category} - ${totalProducts.toLocaleString()} items`
+    : subcategory 
+    ? `${subcategoryMap[subcategory] || subcategory} - ${totalProducts.toLocaleString()} items`
+    : `Jewellery - ${totalProducts.toLocaleString()} items`;
 
   return (
     <main className="flex-grow">
-        {/* Breadcrumbs */}
         <div className="bg-background border-b">
           <div className="container mx-auto px-4 py-3">
-            <nav className="flex items-center gap-2 text-sm text-muted-foreground">
-              {breadcrumbs.map((crumb, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  {index === 0 ? (
-                    <Link href={crumb.href || "#"} className="hover:text-primary transition-colors">
-                      <Home className="h-4 w-4" />
-                    </Link>
-                  ) : (
-                    <>
-                      <span className="text-muted-foreground">/</span>
-                      {crumb.href ? (
-                        <Link href={crumb.href} className="hover:text-primary transition-colors">
-                          {crumb.label}
-                        </Link>
-                      ) : (
-                        <span className="text-foreground">{crumb.label}</span>
-                      )}
-                    </>
-                  )}
-                </div>
-              ))}
-            </nav>
+            <Breadcrumbs items={breadcrumbItems} />
           </div>
         </div>
 
         <div className="container mx-auto px-4 py-6 md:py-8">
-          {/* Header with Item Count */}
-          <div className="mb-6 md:mb-8">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 capitalize">
-              {category ? categoryMap[category] || category : subcategory ? subcategoryMap[subcategory] || subcategory : "Jewellery"} - {totalProducts.toLocaleString()} items
-            </h1>
-          </div>
+          <PageHeader
+            title={pageTitle}
+            description="Discover our exquisite collection of fine jewelry"
+          />
 
           {/* Active Filters */}
           {activeFilters.length > 0 && (
@@ -798,40 +786,21 @@ function ShopPageContent() {
 
               {/* Products Grid/List */}
               {loading ? (
-                <div
-                  className={
-                    viewMode === "grid"
-                      ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4"
-                      : "space-y-4"
-                  }
-                >
-                  {[...Array(10)].map((_, index) => (
-                    <div
-                      key={index}
-                      className={cn(
-                        "bg-muted animate-pulse rounded-lg",
-                        viewMode === "grid" ? "aspect-[4/5]" : "h-32"
-                      )}
-                    />
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <ProductCardSkeleton key={i} />
                   ))}
                 </div>
               ) : filteredProducts.length === 0 ? (
-                <div className="text-center py-16">
-                  <div className="max-w-md mx-auto">
-                    <div className="text-6xl mb-4">🔍</div>
-                    <h3 className="text-xl font-semibold mb-2">No products found</h3>
-                    <p className="text-muted-foreground mb-6">
-                      {activeFilters.length > 0
-                        ? "Try adjusting your filters to see more results."
-                        : "We couldn't find any products matching your criteria."}
-                    </p>
-                    {activeFilters.length > 0 && (
-                      <Button variant="outline" onClick={clearAllFilters}>
-                        Clear All Filters
-                      </Button>
-                    )}
-                  </div>
-                </div>
+                <EmptyState
+                  icon={Package}
+                  title="No products found"
+                  description="Try adjusting your filters or search terms to find what you're looking for."
+                  action={{
+                    label: "Clear Filters",
+                    onClick: clearAllFilters,
+                  }}
+                />
               ) : (
                 <>
                   <div

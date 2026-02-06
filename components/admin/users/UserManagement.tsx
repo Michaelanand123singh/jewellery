@@ -276,7 +276,6 @@ function UserManagementContent() {
     setExporting(true);
     try {
       const params: Record<string, string> = {
-        limit: "10000",
         sortBy,
         sortOrder,
       };
@@ -288,61 +287,41 @@ function UserManagementContent() {
       if (startDate) params.startDate = startDate;
       if (endDate) params.endDate = endDate;
 
-      const response = await apiClient.get<User[]>("/users", params);
+      // Use dedicated export endpoint
+      const response = await fetch(`/api/v1/users/export?${new URLSearchParams(params).toString()}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
-      if (response.success && response.data) {
-        const usersToExport = Array.isArray(response.data) ? response.data : [];
-        const headers = [
-          "ID",
-          "Name",
-          "Email",
-          "Phone",
-          "Role",
-          "Provider",
-          "Orders",
-          "Total Spent",
-          "Addresses",
-          "Cart Items",
-          "Wishlist Items",
-          "Reviews",
-          "Joined Date",
-        ];
-        const rows = usersToExport.map((user) => [
-          user.id,
-          user.name || "N/A",
-          user.email,
-          user.phone || "N/A",
-          user.role,
-          user.provider,
-          (user._count?.orders || 0).toString(),
-          (user.totalSpent || 0).toFixed(2),
-          (user._count?.addresses || 0).toString(),
-          (user._count?.cartItems || 0).toString(),
-          (user._count?.wishlistItems || 0).toString(),
-          (user._count?.reviews || 0).toString(),
-          format(new Date(user.createdAt), "yyyy-MM-dd HH:mm:ss"),
-        ]);
-
-        const csvContent = [
-          headers.join(","),
-          ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
-        ].join("\n");
-
-        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-        const link = document.createElement("a");
-        const url = URL.createObjectURL(blob);
-        link.setAttribute("href", url);
-        link.setAttribute("download", `users-${format(new Date(), "yyyy-MM-dd")}.csv`);
-        link.style.visibility = "hidden";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        toast.success("Users exported successfully");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to export users' }));
+        throw new Error(errorData.error || 'Failed to export users');
       }
-    } catch (error) {
+
+      // Get filename from Content-Disposition header or use default
+      const contentDisposition = response.headers.get('Content-Disposition');
+      const filename = contentDisposition
+        ? contentDisposition.split('filename=')[1]?.replace(/"/g, '') || `users-${format(new Date(), 'yyyy-MM-dd')}.csv`
+        : `users-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+
+      // Get CSV content as blob
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success("Users exported successfully");
+    } catch (error: any) {
       console.error("Error exporting users:", error);
-      toast.error("Failed to export users");
+      toast.error(error?.message || "Failed to export users");
     } finally {
       setExporting(false);
     }
@@ -434,14 +413,14 @@ function UserManagementContent() {
       {/* Filters */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
               <Filter className="h-5 w-5" />
               Filters
             </CardTitle>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
               {hasActiveFilters && (
-                <Button variant="outline" size="sm" onClick={clearFilters}>
+                <Button variant="outline" size="sm" onClick={clearFilters} className="flex-1 sm:flex-initial">
                   <X className="h-4 w-4 mr-2" />
                   Clear
                 </Button>
@@ -451,6 +430,7 @@ function UserManagementContent() {
                 size="sm"
                 onClick={handleExport}
                 disabled={exporting || loading}
+                className="flex-1 sm:flex-initial"
               >
                 {exporting ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -634,28 +614,30 @@ function UserManagementContent() {
                             {format(new Date(user.createdAt), "MMM dd, yyyy")}
                           </TableCell>
                           <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
+                            <div className="flex flex-wrap justify-end gap-2">
                               <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handleViewDetails(user)}
+                                className="flex-1 sm:flex-initial"
                               >
-                                <Eye className="h-4 w-4 mr-2" />
-                                View
+                                <Eye className="h-4 w-4 sm:mr-2" />
+                                <span className="hidden sm:inline">View</span>
                               </Button>
                               <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handleEdit(user)}
+                                className="flex-1 sm:flex-initial"
                               >
-                                <Edit className="h-4 w-4 mr-2" />
-                                Edit
+                                <Edit className="h-4 w-4 sm:mr-2" />
+                                <span className="hidden sm:inline">Edit</span>
                               </Button>
                               <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handleDelete(user)}
-                                className="text-destructive hover:text-destructive"
+                                className="text-destructive hover:text-destructive flex-1 sm:flex-initial"
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -669,8 +651,8 @@ function UserManagementContent() {
               </div>
 
               {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-4">
-                  <p className="text-sm text-muted-foreground">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4">
+                  <p className="text-xs sm:text-sm text-muted-foreground text-center sm:text-left">
                     Showing {((page - 1) * 20) + 1} to {Math.min(page * 20, total)} of {total} users
                   </p>
                   <div className="flex gap-2">
@@ -712,7 +694,7 @@ function UserManagementContent() {
       />
 
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-[95vw] sm:max-w-lg p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle>Delete User</DialogTitle>
             <DialogDescription>

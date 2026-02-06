@@ -190,15 +190,15 @@ export default function AdminDashboard() {
     const maxRevenue = Math.max(...stats.revenueChart.map(d => d.revenue), 1);
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-                    <p className="text-muted-foreground">Overview of your store's performance</p>
+                    <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Dashboard</h1>
+                    <p className="text-sm sm:text-base text-muted-foreground">Overview of your store's performance</p>
                 </div>
                 <Select value={timeRange} onValueChange={setTimeRange}>
-                    <SelectTrigger className="w-[180px]">
+                    <SelectTrigger className="w-full sm:w-[180px]">
                         <SelectValue placeholder="Select time range" />
                     </SelectTrigger>
                     <SelectContent>
@@ -357,15 +357,15 @@ export default function AdminDashboard() {
                 {/* Revenue Chart */}
                 <Card className="lg:col-span-4">
                     <CardHeader>
-                        <div className="flex items-center justify-between">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                             <div>
-                                <CardTitle>Revenue Trend</CardTitle>
-                                <CardDescription>Last 30 days revenue</CardDescription>
+                                <CardTitle className="text-lg sm:text-xl">Revenue Trend</CardTitle>
+                                <CardDescription className="text-xs sm:text-sm">Last 30 days revenue</CardDescription>
                             </div>
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="h-[300px] flex items-end justify-between gap-1">
+                        <div className="h-[200px] sm:h-[300px] flex items-end justify-between gap-1 overflow-x-auto">
                             {stats.revenueChart.map((day, index) => (
                                 <div key={day.date} className="flex-1 flex flex-col items-center group">
                                     <div
@@ -492,8 +492,8 @@ export default function AdminDashboard() {
                         ) : (
                             <div className="space-y-4">
                                 {stats.topProducts.slice(0, 5).map((product, index) => (
-                                    <div key={product.id} className="flex items-center gap-4">
-                                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                                    <div key={product.id} className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 p-2 sm:p-0">
+                                        <div className="flex items-center gap-3 flex-1 min-w-0 w-full sm:w-auto">
                                             <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
                                                 {index + 1}
                                             </div>

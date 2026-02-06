@@ -16,18 +16,38 @@ export async function GET(request: NextRequest) {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
     logger.request('GET', '/api/v1/categories', ip);
 
+    // Check if user is admin
+    let isAdmin = false;
+    try {
+      const { getAuthUser } = await import('@/lib/auth');
+      const user = await getAuthUser(request);
+      isAdmin = user?.role === 'ADMIN';
+    } catch {
+      // Not authenticated - will only see active categories
+    }
+
     const { searchParams } = new URL(request.url);
     const tree = searchParams.get('tree') === 'true';
-    const includeInactive = searchParams.get('includeInactive') === 'true';
+    const includeInactive = isAdmin && searchParams.get('includeInactive') === 'true';
+    
+    // Simplified: Frontend shows all active categories by default
+    // Admin can explicitly request onlyNavCategories=true if needed
+    const onlyNavCategories = searchParams.get('onlyNavCategories') === 'true';
 
     const categoryService = new CategoryService();
     const categories = tree
-      ? await categoryService.getCategoryTree(includeInactive)
-      : await categoryService.getAllCategories(includeInactive);
+      ? await categoryService.getCategoryTree(includeInactive, onlyNavCategories)
+      : await categoryService.getAllCategories(includeInactive, onlyNavCategories);
+
+    // Transform image URLs to use proxy for frontend access
+    const categoriesWithProxyUrls = categories.map(category => ({
+      ...category,
+      image: category.image ? categoryService.transformImageUrl(category.image) : category.image,
+    }));
 
     return NextResponse.json({
       success: true,
-      data: categories,
+      data: categoriesWithProxyUrls,
     });
   } catch (error) {
     return handleApiError(error);

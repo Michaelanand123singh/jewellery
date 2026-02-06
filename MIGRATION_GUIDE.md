@@ -1,269 +1,233 @@
-# 🔄 Migration Guide: Old API to New v1 API
+# Database Migration Guide
 
-This guide helps you migrate from the old API routes to the new `/api/v1/*` routes.
+## Overview
 
-## 📊 API Route Mapping
+This guide explains how to migrate data from your old Supabase database to the new local PostgreSQL database running in Docker.
 
-### Authentication
+## Prerequisites
 
-| Old Route | New Route | Changes |
-|-----------|-----------|---------|
-| `POST /api/auth/login` | `POST /api/v1/auth/login` | Same functionality |
-| `POST /api/auth/register` | `POST /api/v1/auth/register` | Same functionality |
-| `GET /api/auth/me` | `GET /api/v1/auth/me` | Same functionality |
-| `POST /api/auth/logout` | `POST /api/v1/auth/logout` | Same functionality |
+1. ✅ Docker services running (PostgreSQL, Redis, MinIO)
+2. ✅ New database migrations applied
+3. ✅ Old database credentials available
+4. ✅ Network access to old Supabase database
 
-### Products
+## Migration Process
 
-| Old Route | New Route | Changes |
-|-----------|-----------|---------|
-| `GET /api/products` | `GET /api/v1/products` | Same query params |
-| `POST /api/products` | `POST /api/v1/products` | Same body structure |
-| `GET /api/products/[id]` | `GET /api/v1/products/[id]` | Same |
-| `PUT /api/products/[id]` | `PUT /api/v1/products/[id]` | Same |
-| `DELETE /api/products/[id]` | `DELETE /api/v1/products/[id]` | Same |
+### Step 1: Configure Environment Variables
 
-### Cart
+Add these to your `.env` file:
 
-| Old Route | New Route | Changes |
-|-----------|-----------|---------|
-| `GET /api/cart` | `GET /api/v1/cart` | Response: `{ success, data: { items } }` |
-| `POST /api/cart` | `POST /api/v1/cart` | Body: `{ productId, quantity }` |
-| `DELETE /api/cart` | `DELETE /api/v1/cart` | Same |
-| `PUT /api/cart/[id]` | `PUT /api/v1/cart/[id]` | Body: `{ quantity }` |
-| `DELETE /api/cart/[id]` | `DELETE /api/v1/cart/[id]` | Same |
+```env
+# Old Database (Supabase) - Source
+OLD_DATABASE_URL="postgresql://postgres.ldzlhefoqgqtmvanoyya:%40%23123Anandsingh@aws-1-ap-south-1.pooler.supabase.com:6543/postgres?pgbouncer=true&schema=public"
+OLD_DIRECT_URL="postgresql://postgres.ldzlhefoqgqtmvanoyya:%40%23123Anandsingh@aws-1-ap-south-1.pooler.supabase.com:5432/postgres?schema=public"
 
-### Orders
-
-| Old Route | New Route | Changes |
-|-----------|-----------|---------|
-| `GET /api/orders` | `GET /api/v1/orders` | Same query params |
-| `POST /api/orders` | `POST /api/v1/orders` | Same body structure |
-| `GET /api/orders/[id]` | `GET /api/v1/orders/[id]` | Same |
-| `PUT /api/orders/[id]` | `PUT /api/v1/orders/[id]` | Admin only, body: `{ status?, paymentStatus? }` |
-
-### Wishlist
-
-| Old Route | New Route | Changes |
-|-----------|-----------|---------|
-| `GET /api/wishlist` | `GET /api/v1/wishlist` | Response: `{ success, data: { items } }` |
-| `POST /api/wishlist` | `POST /api/v1/wishlist` | Body: `{ productId }` |
-| `DELETE /api/wishlist?productId=xxx` | `DELETE /api/v1/wishlist?productId=xxx` | Same |
-| `GET /api/wishlist/check?productId=xxx` | `GET /api/v1/wishlist/check?productId=xxx` | Same |
-
-### Reviews
-
-| Old Route | New Route | Changes |
-|-----------|-----------|---------|
-| `GET /api/reviews?productId=xxx` | `GET /api/v1/reviews?productId=xxx` | Same |
-| `POST /api/reviews` | `POST /api/v1/reviews` | Body: `{ productId, rating, comment? }` |
-| `PUT /api/reviews/[id]` | `PUT /api/v1/reviews/[id]` | Body: `{ rating?, comment? }` |
-| `DELETE /api/reviews/[id]` | `DELETE /api/v1/reviews/[id]` | Same |
-
-### Addresses
-
-| Old Route | New Route | Changes |
-|-----------|-----------|---------|
-| `GET /api/addresses` | `GET /api/v1/addresses` | Same |
-| `POST /api/addresses` | `POST /api/v1/addresses` | Same body structure |
-| `GET /api/addresses/[id]` | `GET /api/v1/addresses/[id]` | Same |
-| `PUT /api/addresses/[id]` | `PUT /api/v1/addresses/[id]` | Same |
-| `DELETE /api/addresses/[id]` | `DELETE /api/v1/addresses/[id]` | Same |
-
-## 🔧 Response Format
-
-All v1 API routes follow a consistent response format:
-
-### Success Response
-```typescript
-{
-  success: true,
-  data: T,
-  message?: string,
-  meta?: {
-    page?: number,
-    limit?: number,
-    total?: number,
-    totalPages?: number
-  }
-}
+# New Database (Local Docker) - Target
+DATABASE_URL="postgresql://jewellery_user:jewellery_password@localhost:5434/jewellery_db?schema=public"
+DIRECT_URL="postgresql://jewellery_user:jewellery_password@localhost:5434/jewellery_db?schema=public"
 ```
 
-### Error Response
-```typescript
-{
-  success: false,
-  error: string,
-  errors?: Array<{ field: string; message: string }>,
-  code?: string
-}
+### Step 2: Verify Connections
+
+Test both database connections:
+
+```bash
+# Test old database
+psql "postgresql://postgres.ldzlhefoqgqtmvanoyya:%40%23123Anandsingh@aws-1-ap-south-1.pooler.supabase.com:5432/postgres?schema=public" -c "SELECT COUNT(*) FROM users;"
+
+# Test new database
+docker-compose -f docker-compose.infrastructure.yml exec postgres psql -U jewellery_user -d jewellery_db -c "SELECT COUNT(*) FROM users;"
 ```
 
-## 📝 Migration Steps
+### Step 3: Run Migration
 
-### 1. Update API Base URL
+Execute the migration script:
 
-Create a constant for the API base URL:
-
-```typescript
-// lib/api.ts
-export const API_BASE_URL = '/api/v1';
+```bash
+npm run db:migrate-data
 ```
 
-### 2. Update Fetch Calls
+Or directly:
 
-**Before:**
-```typescript
-const response = await fetch('/api/products');
+```bash
+npx tsx scripts/migrate-database.ts
 ```
 
-**After:**
-```typescript
-const response = await fetch('/api/v1/products');
+## What Gets Migrated
+
+The migration script migrates all tables in this order (respecting foreign key constraints):
+
+1. **Users** - All user accounts
+2. **Addresses** - User shipping addresses
+3. **Categories** - Product categories
+4. **Brands** - Product brands
+5. **Products** - All products with:
+   - Product variants
+   - Product tags
+   - Tag relations
+6. **Orders** - All orders with:
+   - Order items
+7. **CartItems** - Shopping cart items
+8. **WishlistItems** - Wishlist items
+9. **Reviews** - Product reviews
+10. **StockMovements** - Inventory movements
+
+## Migration Behavior
+
+- **Upsert Strategy**: Uses `upsert` to avoid duplicates
+  - If record exists (by ID or unique key), it updates
+  - If record doesn't exist, it creates
+- **Error Handling**: 
+  - Foreign key errors are skipped (missing parent records)
+  - Unique constraint errors are skipped (duplicates)
+  - Other errors are logged and counted
+- **Batch Processing**: Processes in batches of 100 records
+- **Progress Tracking**: Shows real-time progress for each table
+
+## Migration Output
+
+The script will show:
+
+```
+═══════════════════════════════════════════════════════
+   Database Migration Script
+═══════════════════════════════════════════════════════
+
+📊 Source Database (Old): ...
+📊 Target Database (New): ...
+
+🔌 Testing database connections...
+✅ Old database connection successful
+✅ New database connection successful
+
+📊 Counting records in old database...
+Record counts:
+  users: 10
+  products: 150
+  ...
+
+🚀 Starting migration...
+
+📦 Migrating Users... (10 records)
+  ✅ Users: 10/10 migrated, 0 errors
+
+📦 Migrating Products... (150 records)
+  ✅ Products: 150/150 migrated, 0 errors
+
+...
+
+═══════════════════════════════════════════════════════
+   Migration Summary
+═══════════════════════════════════════════════════════
+
+✅ Users: 10/10 migrated, 0 errors
+✅ Products: 150/150 migrated, 0 errors
+...
+
+Total: 500 records migrated, 0 errors
+
+✅ Migration completed successfully!
 ```
 
-### 3. Update Response Handling
+## Troubleshooting
 
-**Before:**
-```typescript
-const data = await response.json();
-if (data.success && data.data) {
-  setProducts(data.data);
-}
+### Connection Errors
+
+**Error: "Failed to connect to old database"**
+- Check network connectivity to Supabase
+- Verify credentials in `.env`
+- Ensure Supabase allows connections from your IP
+
+**Error: "Failed to connect to new database"**
+- Ensure Docker PostgreSQL is running: `docker-compose ps postgres`
+- Verify DATABASE_URL in `.env`
+- Check port 5434 is accessible
+
+### Foreign Key Errors
+
+If you see foreign key constraint errors:
+- This is normal for dependent records (addresses, orders, etc.)
+- The script will skip these and continue
+- Ensure parent records (users, products) are migrated first
+
+### Duplicate Errors
+
+If you see unique constraint errors:
+- Records already exist in new database
+- The script uses upsert, so it will update existing records
+- This is expected if you run migration multiple times
+
+### Large Dataset
+
+For large datasets (>10,000 records):
+- Migration may take several minutes
+- Progress is shown in real-time
+- Consider running during off-peak hours
+
+## Post-Migration
+
+### Verify Data
+
+```bash
+# Check record counts
+docker-compose -f docker-compose.infrastructure.yml exec postgres psql -U jewellery_user -d jewellery_db -c "
+SELECT 
+  'users' as table_name, COUNT(*) as count FROM users
+UNION ALL
+SELECT 'products', COUNT(*) FROM products
+UNION ALL
+SELECT 'orders', COUNT(*) FROM orders;
+"
 ```
 
-**After:**
-```typescript
-const result = await response.json();
-if (result.success && result.data) {
-  // Handle pagination meta if present
-  if (result.meta) {
-    setPagination(result.meta);
-  }
-  setProducts(result.data);
-} else {
-  // Handle error
-  console.error(result.error);
-}
-```
+### Test Application
 
-### 4. Update Cart/Wishlist Responses
+1. Start your application: `npm run dev`
+2. Login with migrated user accounts
+3. Verify products are visible
+4. Check orders are accessible
+5. Test file uploads (images should work with MinIO)
 
-**Before:**
-```typescript
-const data = await response.json();
-if (data.success && data.data) {
-  setCartItems(data.data); // Direct array
-}
-```
+### Clean Up
 
-**After:**
-```typescript
-const result = await response.json();
-if (result.success && result.data) {
-  setCartItems(result.data.items); // Nested in items property
-}
-```
+After successful migration:
+1. Remove old database credentials from `.env` (optional)
+2. Update application to use new database
+3. Test all functionality
+4. Consider backing up old database before decommissioning
 
-## 🎯 Component Migration Examples
+## Rollback
 
-### Product Fetching
+If migration fails or you need to rollback:
 
-**Before:**
-```typescript
-useEffect(() => {
-  const fetchProducts = async () => {
-    const response = await fetch('/api/products');
-    const data = await response.json();
-    if (data.success && data.data) {
-      setProducts(data.data);
-    }
-  };
-  fetchProducts();
-}, []);
-```
+1. **Stop the application**
+2. **Drop and recreate new database:**
+   ```bash
+   docker-compose -f docker-compose.infrastructure.yml down -v
+   docker-compose -f docker-compose.infrastructure.yml up -d postgres
+   npx prisma migrate deploy
+   ```
+3. **Re-run migration** after fixing issues
 
-**After:**
-```typescript
-useEffect(() => {
-  const fetchProducts = async () => {
-    const response = await fetch('/api/v1/products');
-    const result = await response.json();
-    if (result.success && result.data) {
-      setProducts(result.data);
-      if (result.meta) {
-        setTotalPages(result.meta.totalPages);
-      }
-    } else {
-      toast.error(result.error || 'Failed to fetch products');
-    }
-  };
-  fetchProducts();
-}, []);
-```
+## Important Notes
 
-### Cart Operations
+⚠️ **Backup First**: Always backup your old database before migration
 
-**Before:**
-```typescript
-const addToCart = async (productId: string) => {
-  const response = await fetch('/api/cart', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ productId, quantity: 1 }),
-  });
-  const data = await response.json();
-  if (data.success) {
-    // Update cart
-  }
-};
-```
+⚠️ **Test Environment**: Test migration in a development environment first
 
-**After:**
-```typescript
-const addToCart = async (productId: string) => {
-  const response = await fetch('/api/v1/cart', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ productId, quantity: 1 }),
-  });
-  const result = await response.json();
-  if (result.success) {
-    toast.success(result.message || 'Item added to cart');
-    // Refresh cart
-    await fetchCart();
-  } else {
-    toast.error(result.error || 'Failed to add to cart');
-  }
-};
-```
+⚠️ **Downtime**: Plan for brief downtime during migration
 
-## ⚠️ Breaking Changes
+⚠️ **File Storage**: Image URLs from Supabase will need to be migrated to MinIO separately (if needed)
 
-1. **Cart/Wishlist Response Structure**: Items are now nested in `data.items` instead of `data` directly
-2. **Error Handling**: All errors now follow the consistent format with `success: false`
-3. **Pagination**: Pagination metadata is now in `meta` property
+## Support
 
-## ✅ Benefits of New API
+For issues:
+1. Check migration script output for specific errors
+2. Verify database connections
+3. Check foreign key relationships
+4. Review Prisma schema for table structure
 
-1. **Consistent Response Format**: All routes follow the same structure
-2. **Better Error Handling**: Standardized error responses with codes
-3. **Type Safety**: Full TypeScript support
-4. **Validation**: Input validation with Zod schemas
-5. **Service Layer**: Business logic separated from routes
-6. **Maintainability**: Cleaner, more organized code
+---
 
-## 🔄 Backward Compatibility
-
-The old API routes (`/api/*`) are still functional for backward compatibility. However, we recommend migrating to `/api/v1/*` for:
-- Better error handling
-- Consistent response format
-- Future features and improvements
-- Type safety
-
-## 📚 Additional Resources
-
-- See `ARCHITECTURE_REFACTORING_PLAN.md` for architecture details
-- See `REFACTORING_PROGRESS.md` for implementation status
-- Check individual domain folders in `src/domains/` for service methods
-
+**Migration Script**: `scripts/migrate-database.ts`
+**Run Command**: `npm run db:migrate-data`

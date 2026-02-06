@@ -203,6 +203,15 @@ export default function ProductManagement() {
     const [variants, setVariants] = useState<Product['variants']>([]);
     const [categoriesLoading, setCategoriesLoading] = useState<boolean>(true);
     const [loading, setLoading] = useState(true);
+    // Pagination state
+    const [page, setPage] = useState(1);
+    const [limit] = useState(20); // Fixed limit per page
+    const [total, setTotal] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
+    // Search and filter state
+    const [searchQuery, setSearchQuery] = useState("");
+    const [statusFilter, setStatusFilter] = useState<string>("all");
+    const [categoryFilter, setCategoryFilter] = useState<string>("all");
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
     const [formData, setFormData] = useState<ProductFormData>(initialFormData);
@@ -225,17 +234,46 @@ export default function ProductManagement() {
 
     useEffect(() => {
         if (user?.role === "ADMIN") {
-            fetchProducts();
             fetchCategories();
             fetchBrands();
             fetchTags();
         }
     }, [user]);
 
+    // Refetch products when page, search, or filters change, or when user becomes admin
+    useEffect(() => {
+        if (user?.role === "ADMIN") {
+            fetchProducts();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user, page, searchQuery, statusFilter, categoryFilter]);
+
     const fetchProducts = async () => {
         try {
             setLoading(true);
-            const response = await fetch("/api/v1/products?limit=100");
+            
+            // Build query parameters
+            const params = new URLSearchParams({
+                page: page.toString(),
+                limit: limit.toString(),
+            });
+
+            // Add search query if provided
+            if (searchQuery.trim()) {
+                params.append("search", searchQuery.trim());
+            }
+
+            // Add status filter if not "all"
+            if (statusFilter !== "all") {
+                params.append("status", statusFilter);
+            }
+
+            // Add category filter if not "all"
+            if (categoryFilter !== "all") {
+                params.append("category", categoryFilter);
+            }
+
+            const response = await fetch(`/api/v1/products?${params.toString()}`);
             if (!response.ok) {
                 console.error("Failed to fetch products:", response.statusText);
                 toast.error("Failed to load products");
@@ -249,7 +287,18 @@ export default function ProductManagement() {
             }
             const data = await response.json();
             if (data.success) {
-                setProducts(data.data);
+                setProducts(data.data || []);
+                
+                // Update pagination metadata from API response
+                if (data.meta) {
+                    setTotal(data.meta.total || 0);
+                    setTotalPages(data.meta.totalPages || 0);
+                } else {
+                    // Fallback: calculate from results
+                    const productCount = data.data?.length || 0;
+                    setTotal(productCount);
+                    setTotalPages(Math.ceil(productCount / limit));
+                }
             }
         } catch (error) {
             console.error("Failed to fetch products:", error);
@@ -834,9 +883,15 @@ export default function ProductManagement() {
             } else {
                 toast.error(response.error || "Failed to delete product");
             }
-        } catch (error) {
-            console.error("Error deleting product:", error);
-            toast.error("An error occurred while deleting the product");
+        } catch (error: any) {
+            // Extract error message from API response
+            const errorMessage = error?.message || error?.error || "An error occurred while deleting the product";
+            toast.error(errorMessage);
+            
+            // Only log unexpected errors (not user-facing validation errors)
+            if (error?.status !== 409 && error?.status !== 404) {
+                console.error("Error deleting product:", error);
+            }
         }
     };
 
@@ -1145,36 +1200,45 @@ export default function ProductManagement() {
         <div className="space-y-6">
             <Card>
                 <CardHeader>
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                         <div>
-                            <CardTitle>Product Management</CardTitle>
-                            <CardDescription>
+                            <CardTitle className="text-xl sm:text-2xl">Product Management</CardTitle>
+                            <CardDescription className="text-xs sm:text-sm">
                                 Add, edit, or remove products from your store
                             </CardDescription>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                             <Button
                                 variant="outline"
                                 onClick={handleDownloadSample}
+                                size="sm"
+                                className="flex-1 sm:flex-initial"
                             >
                                 <FileText className="h-4 w-4 mr-2" />
-                                Download Sample CSV
+                                <span className="hidden sm:inline">Download Sample CSV</span>
+                                <span className="sm:hidden">Sample</span>
                             </Button>
                             <Button
                                 variant="outline"
                                 onClick={handleExport}
                                 disabled={exporting || products.length === 0}
+                                size="sm"
+                                className="flex-1 sm:flex-initial"
                             >
                                 <Download className="h-4 w-4 mr-2" />
-                                {exporting ? "Exporting..." : "Export CSV"}
+                                <span className="hidden sm:inline">{exporting ? "Exporting..." : "Export CSV"}</span>
+                                <span className="sm:hidden">{exporting ? "..." : "Export"}</span>
                             </Button>
                             <Button
                                 variant="outline"
                                 onClick={() => importFileInputRef.current?.click()}
                                 disabled={importing}
+                                size="sm"
+                                className="flex-1 sm:flex-initial"
                             >
                                 <FileUp className="h-4 w-4 mr-2" />
-                                {importing ? "Importing..." : "Import CSV"}
+                                <span className="hidden sm:inline">{importing ? "Importing..." : "Import CSV"}</span>
+                                <span className="sm:hidden">{importing ? "..." : "Import"}</span>
                             </Button>
                             <Input
                                 type="file"
@@ -1183,14 +1247,62 @@ export default function ProductManagement() {
                                 accept=".csv"
                                 className="hidden"
                             />
-                            <Button onClick={() => handleOpenDialog()}>
+                            <Button onClick={() => handleOpenDialog()} size="sm" className="flex-1 sm:flex-initial">
                                 <Plus className="h-4 w-4 mr-2" />
-                                Add Product
+                                <span className="hidden sm:inline">Add Product</span>
+                                <span className="sm:hidden">Add</span>
                             </Button>
                         </div>
                     </div>
                 </CardHeader>
                 <CardContent>
+                    {/* Search and Filters */}
+                    <div className="mb-6 space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div className="sm:col-span-2">
+                                <Input
+                                    placeholder="Search products by name or description..."
+                                    value={searchQuery}
+                                    onChange={(e) => {
+                                        setSearchQuery(e.target.value);
+                                        setPage(1); // Reset to first page on search
+                                    }}
+                                    className="w-full"
+                                />
+                            </div>
+                            <Select value={statusFilter} onValueChange={(value) => {
+                                setStatusFilter(value);
+                                setPage(1); // Reset to first page on filter change
+                            }}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Filter by status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Status</SelectItem>
+                                    <SelectItem value="PUBLISHED">Published</SelectItem>
+                                    <SelectItem value="DRAFT">Draft</SelectItem>
+                                    <SelectItem value="ARCHIVED">Archived</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Select value={categoryFilter} onValueChange={(value) => {
+                                setCategoryFilter(value);
+                                setPage(1); // Reset to first page on filter change
+                            }}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Filter by category" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Categories</SelectItem>
+                                    {categories.map((cat) => (
+                                        <SelectItem key={cat.id} value={cat.slug}>
+                                            {cat.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+
                     {loading ? (
                         <div className="text-center py-8">
                             <p className="text-muted-foreground">Loading products...</p>
@@ -1198,16 +1310,21 @@ export default function ProductManagement() {
                     ) : products.length === 0 ? (
                         <div className="text-center py-8">
                             <Package className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                            <p className="text-lg font-semibold mb-2">No products yet</p>
+                            <p className="text-lg font-semibold mb-2">No products found</p>
                             <p className="text-muted-foreground mb-4">
-                                Get started by adding your first product
+                                {searchQuery || statusFilter !== "all" || categoryFilter !== "all"
+                                    ? "Try adjusting your search or filters"
+                                    : "Get started by adding your first product"}
                             </p>
-                            <Button onClick={() => handleOpenDialog()}>
-                                <Plus className="h-4 w-4 mr-2" />
-                                Add Product
-                            </Button>
+                            {!searchQuery && statusFilter === "all" && categoryFilter === "all" && (
+                                <Button onClick={() => handleOpenDialog()}>
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Add Product
+                                </Button>
+                            )}
                         </div>
                     ) : (
+                        <>
                         <div className="rounded-md border overflow-x-auto">
                             <Table>
                                 <TableHeader>
@@ -1288,17 +1405,50 @@ export default function ProductManagement() {
                                 </TableBody>
                             </Table>
                         </div>
+                        
+                        {/* Pagination Controls */}
+                        {totalPages > 1 && (
+                            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-4 border-t">
+                                <p className="text-xs sm:text-sm text-muted-foreground text-center sm:text-left">
+                                    Showing {((page - 1) * limit) + 1} to {Math.min(page * limit, total)} of {total} products
+                                </p>
+                                <div className="flex gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                        disabled={page === 1 || loading}
+                                    >
+                                        Previous
+                                    </Button>
+                                    <div className="flex items-center gap-2 px-4">
+                                        <span className="text-sm text-muted-foreground">
+                                            Page {page} of {totalPages}
+                                        </span>
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                                        disabled={page === totalPages || loading}
+                                    >
+                                        Next
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+                        </>
                     )}
                 </CardContent>
             </Card>
 
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
                     <DialogHeader>
-                        <DialogTitle>
+                        <DialogTitle className="text-lg sm:text-xl">
                             {editingProduct ? "Edit Product" : "Add New Product"}
                         </DialogTitle>
-                        <DialogDescription>
+                        <DialogDescription className="text-xs sm:text-sm">
                             {editingProduct
                                 ? "Update the product details below"
                                 : "Fill in the details to create a new product"}
@@ -1306,19 +1456,19 @@ export default function ProductManagement() {
                     </DialogHeader>
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                            <TabsList className="grid w-full grid-cols-7">
-                                <TabsTrigger value="basic">Basic</TabsTrigger>
-                                <TabsTrigger value="pricing">Pricing</TabsTrigger>
-                                <TabsTrigger value="seo">SEO</TabsTrigger>
-                                <TabsTrigger value="variants">Variants</TabsTrigger>
-                                <TabsTrigger value="specs">Specs</TabsTrigger>
-                                <TabsTrigger value="supplier">Supplier</TabsTrigger>
-                                <TabsTrigger value="images">Images</TabsTrigger>
+                            <TabsList className="grid w-full grid-cols-4 sm:grid-cols-7 h-auto">
+                                <TabsTrigger value="basic" className="text-xs sm:text-sm">Basic</TabsTrigger>
+                                <TabsTrigger value="pricing" className="text-xs sm:text-sm">Pricing</TabsTrigger>
+                                <TabsTrigger value="seo" className="text-xs sm:text-sm">SEO</TabsTrigger>
+                                <TabsTrigger value="variants" className="text-xs sm:text-sm">Variants</TabsTrigger>
+                                <TabsTrigger value="specs" className="text-xs sm:text-sm">Specs</TabsTrigger>
+                                <TabsTrigger value="supplier" className="text-xs sm:text-sm">Supplier</TabsTrigger>
+                                <TabsTrigger value="images" className="text-xs sm:text-sm">Images</TabsTrigger>
                             </TabsList>
 
                             {/* Basic Info Tab */}
                             <TabsContent value="basic" className="space-y-4 mt-4">
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="col-span-2">
                                 <Label htmlFor="name">Product Name *</Label>
                                 <Input
@@ -1465,7 +1615,7 @@ export default function ProductManagement() {
 
                             {/* Pricing & Status Tab */}
                             <TabsContent value="pricing" className="space-y-4 mt-4">
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <Label htmlFor="price">Price (₹) *</Label>
                                 <Input
@@ -1541,7 +1691,7 @@ export default function ProductManagement() {
 
                             {/* SEO Tab */}
                             <TabsContent value="seo" className="space-y-4 mt-4">
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div className="col-span-2">
                                         <Label htmlFor="metaTitle">Meta Title</Label>
                                         <Input
@@ -1735,7 +1885,7 @@ export default function ProductManagement() {
                                             No specifications added yet
                                         </div>
                                     )}
-                                    <div className="grid grid-cols-2 gap-4 mt-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                                         <div>
                                             <Label htmlFor="weight">Weight (grams)</Label>
                                             <Input
@@ -1822,7 +1972,7 @@ export default function ProductManagement() {
 
                             {/* Supplier & Returns Tab */}
                             <TabsContent value="supplier" className="space-y-4 mt-4">
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div className="col-span-2">
                                         <h3 className="font-semibold mb-2">Supplier Information</h3>
                                     </div>
@@ -1886,7 +2036,7 @@ export default function ProductManagement() {
 
                             {/* Images Tab */}
                             <TabsContent value="images" className="space-y-4 mt-4">
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             {/* Main Image Upload */}
                             <div className="col-span-2">
                                 <Label>Main Product Image *</Label>
