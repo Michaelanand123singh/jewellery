@@ -4,12 +4,12 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
-  Heart, 
-  ShoppingCart, 
-  Star, 
-  Check, 
-  ChevronRight, 
+import {
+  Heart,
+  ShoppingCart,
+  Star,
+  Check,
+  ChevronRight,
   X,
   ArrowRight,
   ChevronDown,
@@ -34,16 +34,16 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Package } from "lucide-react";
 
 // Component for wishlist button in carousel
-function CarouselWishlistButton({ 
-  productId, 
+function CarouselWishlistButton({
+  productId,
   productName,
-  onAddToWishlist 
-}: { 
-  productId: string; 
+  onAddToWishlist,
+}: {
+  productId: string;
   productName: string;
   onAddToWishlist: () => void;
 }) {
-  const isInWishlist = useWishlistStore((state) => state.isInWishlist(productId));
+  const isInWishlist = useWishlistStore((state) => state.isInWishlist(productId),);
 
   return (
     <button
@@ -56,10 +56,7 @@ function CarouselWishlistButton({
       aria-label="Add to wishlist"
     >
       <Heart
-        className={cn(
-          "h-4 w-4",
-          isInWishlist && "fill-primary text-primary"
-        )}
+        className={cn("h-4 w-4", isInWishlist && "fill-primary text-primary")}
       />
     </button>
   );
@@ -84,7 +81,8 @@ export default function ProductPage({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [selectedSize, setSelectedSize] = useState<string>("6");
-  const [expandedSections, setExpandedSections] = useState<{ [key: string]: boolean }>({
+  const [expandedSections, setExpandedSections] = useState<{ [key: string]: boolean;}>
+    ({
     description: false,
     specification: false,
     supplier: false,
@@ -149,9 +147,11 @@ export default function ProductPage({
 
         if (productResponse.success && productResponse.data) {
           setProduct(productResponse.data);
-          
+
           // Extract reviews from product response if available
-          if (productResponse.data.reviews && Array.isArray(productResponse.data.reviews)) {
+          if (productResponse.data.reviews &&
+            Array.isArray(productResponse.data.reviews)
+          ) {
             setReviews(productResponse.data.reviews);
           }
 
@@ -174,9 +174,12 @@ export default function ProductPage({
           if (!productData.reviews) {
             setReviewsLoading(true);
             try {
-              const reviewsResponse = await apiClient.get(`/reviews?productId=${productId}`);
+              const reviewsResponse = await apiClient.get(
+                `/reviews?productId=${productId}`
+              );
               if (reviewsResponse.success && reviewsResponse.data) {
-                const reviewsData = (reviewsResponse.data as any).reviews || reviewsResponse.data;
+                const reviewsData =
+                  (reviewsResponse.data as any).reviews || reviewsResponse.data;
                 setReviews(Array.isArray(reviewsData) ? reviewsData : []);
               }
             } catch (error) {
@@ -250,7 +253,7 @@ export default function ProductPage({
             <div className="aspect-square bg-gradient-to-br from-muted via-muted/50 to-muted animate-pulse rounded-2xl" />
             <div className="space-y-6">
               <div className="h-10 bg-muted animate-pulse rounded-lg w-3/4" />
-            <div className="h-6 bg-muted animate-pulse rounded w-1/2" />
+              <div className="h-6 bg-muted animate-pulse rounded w-1/2" />
               <div className="h-16 bg-muted animate-pulse rounded-lg w-full" />
               <div className="h-32 bg-muted animate-pulse rounded-lg w-full" />
             </div>
@@ -344,7 +347,9 @@ export default function ProductPage({
 
   const calculateDiscount = () => {
     if (product.originalPrice && product.originalPrice > product.price) {
-      return Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
+      return Math.round(
+        ((product.originalPrice - product.price) / product.originalPrice) * 100,
+      );
     }
     return 0;
   };
@@ -362,7 +367,7 @@ export default function ProductPage({
     {
       text: "Buy 1 Get 1 Free Use Code: B1G1 at checkout.",
       code: "B1G1"
-    }
+    },
   ];
 
   // Get products to display - prioritize promotional products, fallback to related products
@@ -386,39 +391,39 @@ export default function ProductPage({
                 sizes="(max-width: 1024px) 100vw, 50vw"
                 priority
               />
-              
+
               {/* Buy 1 Get 1 Badge - Top Left */}
               <div className="absolute top-4 left-4 z-10">
                 <div className="bg-white text-black text-xs font-bold px-3 py-1.5 rounded shadow-lg">
                   Buy 1 Get 1
-            </div>
+                </div>
               </div>
             </div>
 
             {/* Thumbnail Gallery */}
             {images.length > 1 && (
               <div className="grid grid-cols-4 gap-2">
-              {images.map((img, index) => (
-                <button
-                  key={index}
-                  onClick={() => setSelectedImage(index)}
-                  className={cn(
+                {images.map((img, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setSelectedImage(index)}
+                    className={cn(
                       "aspect-square relative overflow-hidden rounded border-2 transition-all",
-                    selectedImage === index
-                      ? "border-primary"
+                      selectedImage === index
+                        ? "border-primary"
                         : "border-transparent hover:border-muted-foreground/50"
-                  )}
-                >
-                  <Image
-                    src={img}
-                    alt={`${product.name} ${index + 1}`}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 1024px) 25vw, 12.5vw"
-                  />
-                </button>
-              ))}
-            </div>
+                    )}
+                  >
+                    <Image
+                      src={img}
+                      alt={`${product.name} ${index + 1}`}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 1024px) 25vw, 12.5vw"
+                    />
+                  </button>
+                ))}
+              </div>
             )}
           </div>
 
@@ -430,39 +435,42 @@ export default function ProductPage({
                 {product.name}
               </h1>
               <div className="flex items-center gap-2 flex-shrink-0">
-              <div className="flex items-center">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className={cn(
+                <div className="flex items-center">
+                  {[...Array(5)].map((_, i) => (
+                    <Star
+                      key={i}
+                      className={cn(
                         "h-3 w-3 sm:h-4 sm:w-4",
-                      i < Math.floor(product.rating || 0)
-                        ? "fill-primary text-primary"
+                        i < Math.floor(product.rating || 0)
+                          ? "fill-primary text-primary"
                           : "text-muted fill-muted"
-                    )}
-                  />
-                ))}
-              </div>
+                      )}
+                    />
+                  ))}
+                </div>
                 <span className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
                   ({product.reviewCount || 0})
-              </span>
+                </span>
               </div>
             </div>
 
             {/* Price Section */}
             <div className="space-y-1">
               <div className="flex items-baseline gap-2 sm:gap-3 flex-wrap">
-                <span className="text-2xl sm:text-3xl font-bold">₹{product.price.toLocaleString()}</span>
-                {product.originalPrice && product.originalPrice > product.price && (
-                <>
-                    <span className="text-lg sm:text-xl text-muted-foreground line-through">
-                      ₹{product.originalPrice.toLocaleString()}
-                  </span>
-                    <span className="text-xs sm:text-sm bg-black text-white dark:bg-black dark:text-white px-2 sm:px-2.5 py-0.5 sm:py-1 font-semibold">
-                      SAVE {calculateDiscount()}%
-                  </span>
-                </>
-              )}
+                <span className="text-2xl sm:text-3xl font-bold">
+                  ₹{product.price.toLocaleString()}
+                </span>
+                {product.originalPrice &&
+                  product.originalPrice > product.price && (
+                    <>
+                      <span className="text-lg sm:text-xl text-muted-foreground line-through">
+                        ₹{product.originalPrice.toLocaleString()}
+                      </span>
+                      <span className="text-xs sm:text-sm bg-black text-white dark:bg-black dark:text-white px-2 sm:px-2.5 py-0.5 sm:py-1 font-semibold">
+                        SAVE {calculateDiscount()}%
+                      </span>
+                    </>
+                  )}
               </div>
               <div className="text-xs sm:text-sm text-muted-foreground">
                 Inclusive of all taxes
@@ -471,7 +479,7 @@ export default function ProductPage({
 
             {/* SKU */}
             <div className="text-sm text-muted-foreground">
-              SKU: {product.slug ? product.slug.toUpperCase() : product.id.slice(0, 8).toUpperCase()}
+              SKU:{product.slug ? product.slug.toUpperCase() : product.id.slice(0, 8).toUpperCase()}
             </div>
 
             {/* Promotional Offers */}
@@ -495,7 +503,7 @@ export default function ProductPage({
               <Check className="h-5 w-5 text-green-600 dark:text-green-500" />
               <span className="text-sm font-medium text-green-600 dark:text-green-500">
                 In stock - ready to ship
-                  </span>
+              </span>
             </div>
 
             {/* Size Selection */}
@@ -539,17 +547,17 @@ export default function ProductPage({
                   </>
                 )}
               </Button>
-              
+
               <div className="flex items-center gap-2 sm:gap-3">
                 <Button
                   size="lg"
                   variant="outline"
                   className="flex-1 h-11 sm:h-12 border-2 text-sm sm:text-base"
                   onClick={handleBuyNow}
-                disabled={!product.inStock}
-              >
+                  disabled={!product.inStock}
+                >
                   BUY IT NOW
-              </Button>
+                </Button>
                 <Button
                   size="lg"
                   variant="outline"
@@ -557,13 +565,13 @@ export default function ProductPage({
                   onClick={handleAddToWishlist}
                   aria-label="Add to wishlist"
                 >
-                <Heart
-                  className={cn(
+                  <Heart
+                    className={cn(
                       "h-4 w-4 sm:h-5 sm:w-5",
-                    isInWishlist && "fill-primary text-primary"
-                  )}
-                />
-              </Button>
+                      isInWishlist && "fill-primary text-primary"
+                    )}
+                  />
+                </Button>
               </div>
             </div>
 
@@ -577,18 +585,20 @@ export default function ProductPage({
                 >
                   <span className="font-semibold">Description</span>
                   <div className="h-8 w-8 rounded bg-foreground text-background flex items-center justify-center">
-                    <Plus className={cn(
-                      "h-4 w-4 transition-transform",
-                      expandedSections.description && "rotate-45"
-                    )} />
-          </div>
+                    <Plus
+                      className={cn(
+                        "h-4 w-4 transition-transform",
+                        expandedSections.description && "rotate-45"
+                      )}
+                    />
+                  </div>
                 </button>
                 {expandedSections.description && (
                   <div className="pb-4 px-4 text-sm text-muted-foreground leading-relaxed">
                     {product.description || "This exquisite jewelry piece features fine craftsmanship and premium materials, designed to be treasured for generations."}
                   </div>
                 )}
-        </div>
+              </div>
 
               {/* Specification Section */}
               <div className="border-b border-border bg-muted/30">
@@ -598,10 +608,12 @@ export default function ProductPage({
                 >
                   <span className="font-semibold">Specification</span>
                   <div className="h-8 w-8 rounded bg-foreground text-background flex items-center justify-center">
-                    <Plus className={cn(
-                      "h-4 w-4 transition-transform",
-                      expandedSections.specification && "rotate-45"
-                    )} />
+                    <Plus
+                      className={cn(
+                        "h-4 w-4 transition-transform",
+                        expandedSections.specification && "rotate-45"
+                      )}
+                    />
                   </div>
                 </button>
                 {expandedSections.specification && (
@@ -624,7 +636,9 @@ export default function ProductPage({
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Category:</span>
-                      <span className="font-medium capitalize">{product.category}</span>
+                      <span className="font-medium capitalize">
+                        {product.category}
+                      </span>
                     </div>
                   </div>
                 )}
@@ -638,19 +652,33 @@ export default function ProductPage({
                 >
                   <span className="font-semibold">Supplier Information</span>
                   <div className="h-8 w-8 rounded bg-foreground text-background flex items-center justify-center">
-                    <Plus className={cn(
-                      "h-4 w-4 transition-transform",
-                      expandedSections.supplier && "rotate-45"
-                    )} />
+                    <Plus
+                      className={cn(
+                        "h-4 w-4 transition-transform",
+                        expandedSections.supplier && "rotate-45",
+                      )}
+                    />
                   </div>
                 </button>
                 {expandedSections.supplier && (
                   <div className="pb-4 px-4 text-sm text-muted-foreground leading-relaxed space-y-2">
-                    <p>Our jewelry is sourced from trusted suppliers who meet our strict quality standards.</p>
+                    <p>
+                      Our jewelry is sourced from trusted suppliers who meet our
+                      strict quality standards.
+                    </p>
                     <div className="space-y-1">
-                      <p><span className="font-medium">Supplier Name:</span> Premium Jewelry Co.</p>
-                      <p><span className="font-medium">Location:</span> Mumbai, India</p>
-                      <p><span className="font-medium">Certification:</span> ISO 9001:2015 Certified</p>
+                      <p>
+                        <span className="font-medium">Supplier Name:</span>
+                        Premium Jewelry Co.
+                      </p>
+                      <p>
+                        <span className="font-medium">Location:</span> Mumbai,
+                        India
+                      </p>
+                      <p>
+                        <span className="font-medium">Certification:</span> ISO
+                        9001:2015 Certified
+                      </p>
                     </div>
                   </div>
                 )}
@@ -664,21 +692,28 @@ export default function ProductPage({
                 >
                   <span className="font-semibold">Returns</span>
                   <div className="h-8 w-8 rounded bg-foreground text-background flex items-center justify-center">
-                    <Plus className={cn(
-                      "h-4 w-4 transition-transform",
-                      expandedSections.returns && "rotate-45"
-                    )} />
+                    <Plus
+                      className={cn(
+                        "h-4 w-4 transition-transform",
+                        expandedSections.returns && "rotate-45"
+                      )}
+                    />
                   </div>
                 </button>
                 {expandedSections.returns && (
                   <div className="pb-4 px-4 text-sm text-muted-foreground leading-relaxed space-y-2">
-                    <p>We offer hassle-free returns and exchanges for your peace of mind.</p>
+                    <p>
+                      We offer hassle-free returns and exchanges for your peace
+                      of mind.
+                    </p>
                     <ul className="list-disc list-inside space-y-1">
                       <li>2 Days Return Policy</li>
                       <li>10 Days Exchange Policy</li>
-                      <li>Items must be in original condition with tags attached</li>
+                      <li>
+                        Items must be in original condition with tags attached
+                      </li>
                       <li>Free return shipping for defective items</li>
-                </ul>
+                    </ul>
                   </div>
                 )}
               </div>
@@ -694,9 +729,13 @@ export default function ProductPage({
               <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
                 <Truck className="h-5 w-5 sm:h-6 sm:w-6 text-amber-700 dark:text-amber-400" />
               </div>
-                  <div>
-                <h3 className="font-semibold text-sm sm:text-base text-foreground">Free Shipping</h3>
-                <p className="text-xs sm:text-sm text-muted-foreground">On orders above ₹500</p>
+              <div>
+                <h3 className="font-semibold text-sm sm:text-base text-foreground">
+                  Free Shipping
+                </h3>
+                <p className="text-xs sm:text-sm text-muted-foreground">
+                  On orders above ₹500
+                </p>
               </div>
             </div>
 
@@ -707,10 +746,14 @@ export default function ProductPage({
                   <div className="h-6 w-6 rounded-full border-2 border-amber-700 dark:border-amber-400"></div>
                   <Sparkles className="h-3 w-3 text-amber-700 dark:text-amber-400 absolute -top-1 -right-1" />
                 </div>
-                  </div>
-                  <div>
-                <h3 className="font-semibold text-foreground">Skin Safe Jewellery</h3>
-                <p className="text-sm text-muted-foreground">Hypoallergenic materials</p>
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground">
+                  Skin Safe Jewellery
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Hypoallergenic materials
+                </p>
               </div>
             </div>
 
@@ -723,11 +766,15 @@ export default function ProductPage({
                   <div className="h-2 w-4 bg-amber-700 dark:bg-amber-400 rounded"></div>
                   <Sparkles className="h-2 w-2 text-amber-700 dark:text-amber-400" />
                 </div>
-                  </div>
-                  <div>
-                <h3 className="font-semibold text-foreground">18k Gold Tone Plated</h3>
-                <p className="text-sm text-muted-foreground">Premium quality finish</p>
-                  </div>
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground">
+                  18k Gold Tone Plated
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Premium quality finish
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -749,7 +796,9 @@ export default function ProductPage({
               <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-3 sm:mb-4">
                 <RotateCcw className="h-6 w-6 sm:h-8 sm:w-8 text-foreground" />
               </div>
-              <h3 className="font-semibold text-base sm:text-lg mb-1 sm:mb-2">2 Days Return</h3>
+              <h3 className="font-semibold text-base sm:text-lg mb-1 sm:mb-2">
+                2 Days Return
+              </h3>
               <p className="text-xs sm:text-sm text-muted-foreground">
                 Easy returns within 2 days of delivery
               </p>
@@ -760,7 +809,9 @@ export default function ProductPage({
               <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-3 sm:mb-4">
                 <RotateCcw className="h-6 w-6 sm:h-8 sm:w-8 text-foreground" />
               </div>
-              <h3 className="font-semibold text-base sm:text-lg mb-1 sm:mb-2">10 Days Exchange</h3>
+              <h3 className="font-semibold text-base sm:text-lg mb-1 sm:mb-2">
+                10 Days Exchange
+              </h3>
               <p className="text-xs sm:text-sm text-muted-foreground">
                 Exchange for different size or style
               </p>
@@ -773,14 +824,15 @@ export default function ProductPage({
                   <IndianRupee className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                 </div>
               </div>
-              <h3 className="font-semibold text-base sm:text-lg mb-1 sm:mb-2">Cash On Delivery</h3>
+              <h3 className="font-semibold text-base sm:text-lg mb-1 sm:mb-2">
+                Cash On Delivery
+              </h3>
               <p className="text-xs sm:text-sm text-muted-foreground">
                 Pay when you receive your order
               </p>
             </div>
           </div>
         </div>
-
 
         {/* Promotional Tabs */}
         <div className="bg-white border-b border-border py-3 sm:py-4 mb-6 sm:mb-8 overflow-x-auto">
@@ -831,7 +883,10 @@ export default function ProductPage({
                 onClick={() => {
                   if (carouselRef.current) {
                     const scrollAmount = carouselRef.current.clientWidth;
-                    carouselRef.current.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+                    carouselRef.current.scrollBy({
+                      left: -scrollAmount,
+                      behavior: "smooth"
+                    });
                   }
                 }}
                 className="absolute left-0 sm:left-2 top-1/2 -translate-y-1/2 z-10 h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-background border-2 border-border shadow-lg flex items-center justify-center hover:bg-muted transition-colors"
@@ -850,9 +905,14 @@ export default function ProductPage({
                   scrollbarWidth: 'none',
                   msOverflowStyle: 'none',
                 }}
-                onScroll={(e) => setCarouselScrollPosition(e.currentTarget.scrollLeft)}
+                onScroll={(e) =>
+                  setCarouselScrollPosition(e.currentTarget.scrollLeft)
+                }
               >
-                <div className="flex gap-4 pb-4" style={{ width: 'max-content' }}>
+                <div
+                  className="flex gap-4 pb-4"
+                  style={{ width: "max-content" }}
+                >
                   {displayProducts.map((relatedProduct) => (
                     <div
                       key={relatedProduct.id}
@@ -861,7 +921,10 @@ export default function ProductPage({
                       <div className="relative bg-white border border-border rounded-lg overflow-hidden">
                         {/* Product Image */}
                         <div className="relative aspect-[4/5] overflow-hidden bg-muted">
-                          <Link href={`/products/${relatedProduct.id}`} className="block w-full h-full">
+                          <Link
+                            href={`/products/${relatedProduct.id}`}
+                            className="block w-full h-full"
+                          >
                             <Image
                               src={relatedProduct.image}
                               alt={relatedProduct.name}
@@ -879,10 +942,12 @@ export default function ProductPage({
                           </div>
 
                           {/* Heart Icon - Bottom Left */}
-                          <CarouselWishlistButton 
-                            productId={relatedProduct.id} 
+                          <CarouselWishlistButton
+                            productId={relatedProduct.id}
                             productName={relatedProduct.name}
-                            onAddToWishlist={() => addToWishlist(relatedProduct)} 
+                            onAddToWishlist={() =>
+                              addToWishlist(relatedProduct)
+                            }
                           />
 
                           {/* ADD TO BAG Button - Bottom Right */}
@@ -893,7 +958,9 @@ export default function ProductPage({
                                 await addToCart(relatedProduct);
                                 toast.success(`${relatedProduct.name} added to cart!`);
                               } catch (error: any) {
-                                toast.error(error.message || 'Failed to add to cart');
+                                toast.error(
+                                  error.message || "Failed to add to cart"
+                                );
                               }
                             }}
                             className="absolute bottom-2 right-2 z-10 bg-amber-50 dark:bg-amber-950/30 text-black dark:text-amber-200 text-xs font-semibold px-3 py-1.5 rounded shadow-sm hover:bg-amber-100 dark:hover:bg-amber-950/50 transition-colors"
@@ -911,7 +978,9 @@ export default function ProductPage({
                             </h3>
                           </Link>
                           <div className="flex items-center justify-center gap-2">
-                            <span className="text-base font-semibold">₹{relatedProduct.price.toLocaleString()}</span>
+                            <span className="text-base font-semibold">
+                              ₹{relatedProduct.price.toLocaleString()}
+                            </span>
                             {relatedProduct.originalPrice && (
                               <span className="text-sm text-muted-foreground line-through">
                                 ₹{relatedProduct.originalPrice.toLocaleString()}
@@ -936,7 +1005,10 @@ export default function ProductPage({
                 onClick={() => {
                   if (carouselRef.current) {
                     const scrollAmount = carouselRef.current.clientWidth;
-                    carouselRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+                    carouselRef.current.scrollBy({
+                      left: scrollAmount,
+                      behavior: "smooth"
+                    });
                   }
                 }}
                 className="absolute right-0 sm:right-2 top-1/2 -translate-y-1/2 z-10 h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-background border-2 border-border shadow-lg flex items-center justify-center hover:bg-muted transition-colors"
@@ -959,13 +1031,15 @@ export default function ProductPage({
         {relatedProducts.length > 0 && (
           <section className="mb-12">
             <div className="flex items-center justify-between mb-8">
-                  <div>
-                <h2 className="text-2xl md:text-3xl font-bold mb-2">Similar Products</h2>
+              <div>
+                <h2 className="text-2xl md:text-3xl font-bold mb-2">
+                  Similar Products
+                </h2>
                 <p className="text-muted-foreground">
                   Discover more exquisite pieces from our collection
                 </p>
-                  </div>
-                </div>
+              </div>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {relatedProducts.slice(0, 4).map((relatedProduct) => (
                 <ProductCard key={relatedProduct.id} product={relatedProduct} />
@@ -977,7 +1051,9 @@ export default function ProductPage({
         {/* Reviews Section */}
         <section className="mb-12">
           <div className="mb-8">
-            <h2 className="text-2xl md:text-3xl font-bold mb-2">Customer Reviews</h2>
+            <h2 className="text-2xl md:text-3xl font-bold mb-2">
+              Customer Reviews
+            </h2>
             <p className="text-muted-foreground">
               See what our customers are saying about this product
             </p>
@@ -1011,19 +1087,25 @@ export default function ProductPage({
                       ))}
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Based on {reviews.length} {reviews.length === 1 ? "review" : "reviews"}
+                      Based on {reviews.length}
+                      {reviews.length === 1 ? "review" : "reviews"}
                     </p>
                   </div>
 
                   {/* Rating Distribution */}
                   <div className="flex-1 max-w-md space-y-2">
                     {[5, 4, 3, 2, 1].map((rating) => {
-                      const count = reviews.filter((r: any) => r.rating === rating).length;
-                      const percentage = reviews.length > 0 ? (count / reviews.length) * 100 : 0;
+                      const count = reviews.filter(
+                        (r: any) => r.rating === rating,
+                      ).length;
+                      const percentage =
+                        reviews.length > 0 ? (count / reviews.length) * 100 : 0;
                       return (
                         <div key={rating} className="flex items-center gap-3">
                           <div className="flex items-center gap-1 w-20">
-                            <span className="text-sm font-medium w-4">{rating}</span>
+                            <span className="text-sm font-medium w-4">
+                              {rating}
+                            </span>
                             <Star className="h-4 w-4 fill-primary text-primary" />
                           </div>
                           <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
@@ -1040,17 +1122,19 @@ export default function ProductPage({
                     })}
                   </div>
                 </div>
-            </Card>
+              </Card>
 
               {/* Reviews List */}
-                  <div className="space-y-4">
+              <div className="space-y-4">
                 {reviews.map((review: any) => (
                   <Card key={review.id} className="p-6">
                     <div className="flex items-start justify-between gap-4 mb-4">
                       <div className="flex items-center gap-3">
                         <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
                           <span className="text-lg font-semibold text-primary">
-                            {(review.user?.name || review.user?.email || "A")[0].toUpperCase()}
+                            {(review.user?.name ||
+                              review.user?.email ||
+                              "A")[0].toUpperCase()}
                           </span>
                         </div>
                         <div>
@@ -1065,44 +1149,48 @@ export default function ProductPage({
                             )}
                           </div>
                           <div className="flex items-center gap-1 mt-1">
-                              {[...Array(5)].map((_, i) => (
-                                <Star
-                                  key={i}
-                                  className={cn(
-                                    "h-4 w-4",
+                            {[...Array(5)].map((_, i) => (
+                              <Star
+                                key={i}
+                                className={cn(
+                                  "h-4 w-4",
                                   i < review.rating
-                                      ? "fill-primary text-primary"
+                                    ? "fill-primary text-primary"
                                     : "text-muted fill-muted"
-                                  )}
-                                />
-                              ))}
-                            </div>
+                                )}
+                              />
+                            ))}
+                          </div>
                         </div>
                       </div>
                       <span className="text-sm text-muted-foreground whitespace-nowrap">
-                        {new Date(review.createdAt).toLocaleDateString("en-US", {
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                        })}
-                              </span>
-                          </div>
-                          {review.comment && (
+                        {new Date(review.createdAt).toLocaleDateString(
+                          "en-US",
+                          {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          }
+                        )}
+                      </span>
+                    </div>
+                    {review.comment && (
                       <p className="text-sm text-foreground leading-relaxed pl-15">
-                              {review.comment}
-                            </p>
-                          )}
+                        {review.comment}
+                      </p>
+                    )}
                   </Card>
                 ))}
-                        </div>
-                  </div>
-                ) : (
+              </div>
+            </div>
+          ) : (
             <Card className="p-12 text-center">
               <Star className="h-12 w-12 text-muted mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">No reviews yet</h3>
               <p className="text-muted-foreground mb-4">
-                Be the first to review this product and help others make their decision.
-                  </p>
+                Be the first to review this product and help others make their
+                decision.
+              </p>
               <Button variant="outline" onClick={() => router.push("/login")}>
                 Write a Review
               </Button>
@@ -1129,27 +1217,27 @@ export default function ProductPage({
               }}
             />
             {/* Overlay content */}
-            <div className="absolute inset-0 flex items-center justify-center bg-black/10">
-              <div className="text-center px-4 max-w-3xl">
-                <h3 className="text-2xl md:text-4xl lg:text-5xl font-bold text-white mb-3 drop-shadow-lg">
+            <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+              <div className="text-center px-4 max-w-xl sm:max-w-2xl md:max-w-3xl">
+                <h3 className="text-xl sm:text-2xl md:text-4xl lg:text-5xl font-bold text-white mb-2 sm:mb-3 drop-shadow-lg">
                   Exclusive Collection
                 </h3>
-                <p className="text-base md:text-lg lg:text-xl text-white/95 mb-4 drop-shadow-md">
+                <p className="text-sm sm:text-base md:text-lg lg:text-xl text-white/95 mb-3 sm:mb-4 drop-shadow-md">
                   Discover our premium jewelry pieces crafted with perfection
                 </p>
                 <Button
-                  size="lg"
-                  className="bg-white text-amber-700 hover:bg-amber-50 font-semibold shadow-lg"
-                  onClick={() => router.push('/shop')}
+                  size="sm"
+                  className="bg-white text-amber-700 hover:bg-amber-50 font-semibold shadow-lg px-4 sm:px-6 md:px-8"
+                  onClick={() => router.push("/shop")}
                 >
                   Shop Now
-                  <ArrowRight className="ml-2 h-5 w-5" />
+                  <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
                 </Button>
               </div>
             </div>
           </div>
-            </div>
-          </section>
+        </div>
+      </section>
 
       {/* Fullscreen Image Modal */}
       <AnimatePresence>

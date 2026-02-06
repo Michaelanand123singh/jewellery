@@ -30,8 +30,8 @@ export default function EverydayDemifineSection() {
         </motion.div>
 
         {/* Match screenshot layout: one left-to-right strip. On small screens, allow horizontal scroll instead of wrapping. */}
-        <div className="w-full overflow-x-auto">
-          <div className="grid grid-flow-col auto-cols-[minmax(180px,1fr)] sm:auto-cols-[minmax(200px,1fr)] md:grid-flow-row md:grid-cols-6 gap-2 md:gap-2">
+        <div className="w-full">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 md:gap-2">
           {items.map((item, idx) => (
             <motion.div
               key={item.label}
