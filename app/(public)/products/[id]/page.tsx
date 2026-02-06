@@ -29,6 +29,9 @@ import { Card } from "@/components/ui/card";
 import Link from "next/link";
 import { apiClient } from "@/lib/api-client";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuthRequired } from "@/components/providers/AuthRequiredProvider";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Package } from "lucide-react";
 
 // Component for wishlist button in carousel
 function CarouselWishlistButton({
@@ -86,11 +89,15 @@ export default function ProductPage({
     returns: false,
   });
   const [activePromoTab, setActivePromoTab] = useState<string>("b1g1");
-
+  // Fetch promotional products from API when tab changes
+  const [promotionalProducts, setPromotionalProducts] = useState<Product[]>([]);
+  const [loadingPromoProducts, setLoadingPromoProducts] = useState(false);
+  
   // Available sizes for jewelry (US sizes)
   const availableSizes = ["6", "7", "8"];
   const addToCart = useCartStore((state) => state.addItem);
   const addToWishlist = useWishlistStore((state) => state.addItem);
+  const { requireAuth } = useAuthRequired();
   // Must call hook unconditionally - use empty string as default if product not loaded yet
   const isInWishlist = useWishlistStore((state) =>
     state.isInWishlist(product?.id || "")
@@ -197,6 +204,46 @@ export default function ProductPage({
     fetchProduct();
   }, [params]);
 
+  // Fetch promotional products from API when tab changes
+  useEffect(() => {
+    const fetchPromotionalProducts = async () => {
+      if (!product) return;
+      
+      setLoadingPromoProducts(true);
+      try {
+        // Fetch products with discounts (on sale) for promotional tabs
+        // You can filter by tags, featured status, or onSale in the future
+        const promoResponse = await apiClient.get<Product[]>("/products", {
+          limit: 10,
+          // Filter products that have originalPrice (on sale)
+          // This ensures we show products with discounts
+        });
+
+        if (promoResponse.success && promoResponse.data) {
+          // Filter products that are on sale (have originalPrice)
+          const onSaleProducts = promoResponse.data.filter(
+            (p: Product) => p.originalPrice && p.originalPrice > p.price
+          );
+          
+          // If we have on-sale products, use them; otherwise use all products
+          const productsToShow = onSaleProducts.length > 0 
+            ? onSaleProducts.slice(0, 8)
+            : promoResponse.data.slice(0, 8);
+          
+          setPromotionalProducts(productsToShow);
+        }
+      } catch (error) {
+        console.error("Failed to fetch promotional products:", error);
+        // Fallback to related products if promo fetch fails
+        setPromotionalProducts(relatedProducts);
+      } finally {
+        setLoadingPromoProducts(false);
+      }
+    };
+
+    fetchPromotionalProducts();
+  }, [activePromoTab, product, relatedProducts]);
+
   // Show loading state while fetching
   if (loading) {
     return (
@@ -240,6 +287,11 @@ export default function ProductPage({
   const images = product.images || [product.image];
 
   const handleAddToCart = async () => {
+    if (!product) return;
+    
+    const isAuthenticated = await requireAuth("cart", product, quantity);
+    if (!isAuthenticated) return;
+    
     setIsAddingToCart(true);
     try {
       await addToCart(product, quantity);
@@ -254,6 +306,11 @@ export default function ProductPage({
   };
 
   const handleBuyNow = async () => {
+    if (!product) return;
+    
+    const isAuthenticated = await requireAuth("cart", product, quantity);
+    if (!isAuthenticated) return;
+    
     try {
       await addToCart(product, quantity);
       router.push("/checkout");
@@ -269,12 +326,22 @@ export default function ProductPage({
     }));
   };
 
-  const handleAddToWishlist = () => {
+  const handleAddToWishlist = async () => {
+    if (!product) return;
+    
     if (isInWishlist) {
       toast.info(`${product.name} is already in your wishlist`);
-    } else {
-      addToWishlist(product);
-      toast.success(`${product.name} added to wishlist!`);
+      return;
+    }
+    
+    const isAuthenticated = await requireAuth("wishlist", product);
+    if (isAuthenticated) {
+      try {
+        await addToWishlist(product);
+        toast.success(`${product.name} added to wishlist!`);
+      } catch (error: any) {
+        toast.error(error.message || "Failed to add to wishlist");
+      }
     }
   };
 
@@ -303,259 +370,10 @@ export default function ProductPage({
     },
   ];
 
-  // Helper function to generate slug from name
-  const generateSlug = (name: string): string => {
-    return name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "");
-  };
-
-  // Sample products for each promotional tab
-  const sampleProducts: { [key: string]: Product[] } = {
-    b1g1: [
-      {
-        id: "b1g1-1",
-        name: "Hearts All Over Bracelet",
-        slug: generateSlug("Hearts All Over Bracelet"),
-        price: 2229,
-        originalPrice: 3184,
-        image: "/img/product/1.jpg",
-        images: ["/img/product/1.jpg"],
-        category: "women",
-        rating: 4.5,
-        reviewCount: 0,
-        inStock: true,
-        stockQuantity: 0,
-        description: "Beautiful bracelet with heart charms"
-      },
-      {
-        id: "b1g1-2",
-        name: "Plain Ball Stud Earrings",
-        slug: generateSlug("Plain Ball Stud Earrings"),
-        price: 1495,
-        originalPrice: 2136,
-        image: "/img/product/2.jpg",
-        images: ["/img/product/2.jpg"],
-        category: "women",
-        rating: 4.2,
-        reviewCount: 0,
-        inStock: true,
-        stockQuantity: 0,
-        description: "Classic ball stud earrings"
-      },
-      {
-        id: "b1g1-3",
-        name: "Crystal Love Bangle Bracelet",
-        slug: generateSlug("Crystal Love Bangle Bracelet"),
-        price: 2659,
-        originalPrice: 3799,
-        image: "/img/product/3.jpg",
-        images: ["/img/product/3.jpg"],
-        category: "women",
-        rating: 4.8,
-        reviewCount: 0,
-        inStock: true,
-        stockQuantity: 0,
-        description: "Elegant bangle with crystal details"
-      },
-      {
-        id: "b1g1-4",
-        name: "Diamond Affair Bracelet",
-        slug: generateSlug("Diamond Affair Bracelet"),
-        price: 2553,
-        originalPrice: 3647,
-        image: "/img/product/4.jpg",
-        images: ["/img/product/4.jpg"],
-        category: "women",
-        rating: 4.7,
-        reviewCount: 0,
-        inStock: true,
-        stockQuantity: 0,
-        description: "Delicate diamond bracelet"
-      },
-      {
-        id: "b1g1-5",
-        name: "Athena Solitaire Hoop Earrings",
-        slug: generateSlug("Athena Solitaire Hoop Earrings"),
-        price: 2258,
-        originalPrice: 3226,
-        image: "/img/product/5.jpg",
-        images: ["/img/product/5.jpg"],
-        category: "women",
-        rating: 4.6,
-        reviewCount: 0,
-        inStock: true,
-        stockQuantity: 0,
-        description: "Elegant solitaire hoop earrings"
-      },
-    ],
-    b3: [
-      {
-        id: "b3-1",
-        name: "Gold Plated Necklace Set",
-        slug: generateSlug("Gold Plated Necklace Set"),
-        price: 1001,
-        originalPrice: 1500,
-        image: "/img/product/6.jpg",
-        images: ["/img/product/6.jpg"],
-        category: "women",
-        rating: 4.4,
-        reviewCount: 0,
-        inStock: true,
-        stockQuantity: 0,
-        description: "Complete necklace set"
-      },
-      {
-        id: "b3-2",
-        name: "Rose Gold Ring Collection",
-        slug: generateSlug("Rose Gold Ring Collection"),
-        price: 1001,
-        originalPrice: 1800,
-        image: "/img/product/7.jpg",
-        images: ["/img/product/7.jpg"],
-        category: "women",
-        rating: 4.5,
-        reviewCount: 0,
-        inStock: true,
-        stockQuantity: 0,
-        description: "Beautiful rose gold rings"
-      },
-      {
-        id: "b3-3",
-        name: "Silver Chain Bracelet",
-        slug: generateSlug("Silver Chain Bracelet"),
-        price: 1001,
-        originalPrice: 1600,
-        image: "/img/product/8.jpg",
-        images: ["/img/product/8.jpg"],
-        category: "women",
-        rating: 4.3,
-        reviewCount: 0,
-        inStock: true,
-        stockQuantity: 0,
-        description: "Elegant silver chain bracelet"
-      },
-      {
-        id: "b3-4",
-        name: "Pearl Drop Earrings",
-        slug: generateSlug("Pearl Drop Earrings"),
-        price: 1001,
-        originalPrice: 1700,
-        image: "/img/product/9.jpg",
-        images: ["/img/product/9.jpg"],
-        category: "women",
-        rating: 4.6,
-        reviewCount: 0,
-        inStock: true,
-        stockQuantity: 0,
-        description: "Classic pearl drop earrings"
-      },
-      {
-        id: "b3-5",
-        name: "Diamond Stud Earrings",
-        slug: generateSlug("Diamond Stud Earrings"),
-        price: 1001,
-        originalPrice: 2000,
-        image: "/img/product/10.jpg",
-        images: ["/img/product/10.jpg"],
-        category: "women",
-        rating: 4.7,
-        reviewCount: 0,
-        inStock: true,
-        stockQuantity: 0,
-        description: "Premium diamond studs"
-      },
-    ],
-    b4: [
-      {
-        id: "b4-1",
-        name: "Premium Gold Set",
-        slug: generateSlug("Premium Gold Set"),
-        price: 999,
-        originalPrice: 1500,
-        image: "/img/product/11.jpg",
-        images: ["/img/product/11.jpg"],
-        category: "women",
-        rating: 4.8,
-        reviewCount: 0,
-        inStock: true,
-        stockQuantity: 0,
-        description: "Complete premium gold set"
-      },
-      {
-        id: "b4-2",
-        name: "Designer Bangle Set",
-        slug: generateSlug("Designer Bangle Set"),
-        price: 999,
-        originalPrice: 1600,
-        image: "/img/product/12.jpg",
-        images: ["/img/product/12.jpg"],
-        category: "women",
-        rating: 4.5,
-        reviewCount: 0,
-        inStock: true,
-        stockQuantity: 0,
-        description: "Stylish bangle collection"
-      },
-      {
-        id: "b4-3",
-        name: "Luxury Necklace",
-        slug: generateSlug("Luxury Necklace"),
-        price: 999,
-        originalPrice: 1800,
-        image: "/img/product/13.jpg",
-        images: ["/img/product/13.jpg"],
-        category: "women",
-        rating: 4.6,
-        reviewCount: 0,
-        inStock: true,
-        stockQuantity: 0,
-        description: "Luxurious necklace design"
-      },
-      {
-        id: "b4-4",
-        name: "Elegant Earring Set",
-        slug: generateSlug("Elegant Earring Set"),
-        price: 999,
-        originalPrice: 1700,
-        image: "/img/product/14.jpg",
-        images: ["/img/product/14.jpg"],
-        category: "women",
-        rating: 4.4,
-        reviewCount: 0,
-        inStock: true,
-        stockQuantity: 0,
-        description: "Beautiful earring collection"
-      },
-      {
-        id: "b4-5",
-        name: "Classic Ring Set",
-        slug: generateSlug("Classic Ring Set"),
-        price: 999,
-        originalPrice: 1900,
-        image: "/img/product/15.jpg",
-        images: ["/img/product/15.jpg"],
-        category: "women",
-        rating: 4.7,
-        reviewCount: 0,
-        inStock: true,
-        stockQuantity: 0,
-        description: "Timeless ring collection"
-      },
-    ],
-  };
-
-  // Get products to display based on active tab
-  const getProductsForTab = (): Product[] => {
-    // If we have related products from API, use them, otherwise use sample products
-    if (relatedProducts.length > 0) {
-      return relatedProducts;
-    }
-    return sampleProducts[activePromoTab] || sampleProducts.b1g1;
-  };
-
-  const displayProducts = getProductsForTab();
+  // Get products to display - prioritize promotional products, fallback to related products
+  const displayProducts = promotionalProducts.length > 0 
+    ? promotionalProducts 
+    : relatedProducts;
 
   return (
     <main className="flex-grow bg-background">

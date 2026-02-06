@@ -28,6 +28,7 @@ export interface JWTPayload {
   userId: string;
   email: string;
   role?: string;
+  provider?: string; // "local" | "google"
 }
 
 export async function verifyToken(token: string): Promise<JWTPayload | null> {

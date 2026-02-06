@@ -114,7 +114,7 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background backdrop-blur supports-[backdrop-filter]:bg-background">
       {/* Top Bar */}
-      <div className="hidden md:block border-b bg-muted/40">
+      <div className="hidden md:block bg-white">
         <div className="container mx-auto px-4 py-1.5">
           <div className="flex flex-col lg:flex-row justify-between items-center gap-2 lg:gap-0 text-xs lg:text-sm">
             <p className="text-muted-foreground text-center lg:text-left">

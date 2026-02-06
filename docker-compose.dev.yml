@@ -1,4 +1,90 @@
 services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: jewellery_postgres_dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: jewellery_user
+      POSTGRES_PASSWORD: jewellery_password
+      POSTGRES_DB: jewellery_db
+      POSTGRES_INITDB_ARGS: "-E UTF8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jewellery_user -d jewellery_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - jewellery_dev_network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: jewellery_redis_dev
+    restart: unless-stopped
+    command: redis-server --requirepass redis_password --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    networks:
+      - jewellery_dev_network
+
+  # MinIO Object Storage
+  minio:
+    image: minio/minio:latest
+    container_name: jewellery_minio_dev
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    ports:
+      - "9000:9000"  # API port
+      - "9001:9001"  # Console port
+    volumes:
+      - minio_dev_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+      start_period: 40s
+    networks:
+      - jewellery_dev_network
+
+  # MinIO Client (for initial bucket setup)
+  minio-setup:
+    image: minio/mc:latest
+    container_name: jewellery_minio_setup_dev
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      sleep 5 &&
+      mc alias set myminio http://minio:9000 minioadmin minioadmin123 &&
+      mc mb myminio/products --ignore-existing &&
+      mc anonymous set download myminio/products &&
+      mc policy set public myminio/products &&
+      echo 'MinIO setup completed successfully'
+      "
+    networks:
+      - jewellery_dev_network
+    profiles:
+      - setup
+
   # Next.js Development Server
   app:
     build:
@@ -15,6 +101,22 @@ services:
       NODE_ENV: development
       # Next.js specific
       NEXT_TELEMETRY_DISABLED: 1
+      # Database (override .env if needed)
+      DATABASE_URL: postgresql://jewellery_user:jewellery_password@postgres:5432/jewellery_db?schema=public
+      DIRECT_URL: postgresql://jewellery_user:jewellery_password@postgres:5432/jewellery_db?schema=public
+      # Redis
+      REDIS_URL: redis://:redis_password@redis:6379
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: redis_password
+      # MinIO
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: "9000"
+      MINIO_USE_SSL: "false"
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin123
+      MINIO_BUCKET_NAME: products
+      MINIO_PUBLIC_URL: http://localhost:9000
     volumes:
       # Mount source code for hot reload
       - .:/app
@@ -40,3 +142,24 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - jewellery_dev_network
+
+volumes:
+  postgres_dev_data:
+    driver: local
+  redis_dev_data:
+    driver: local
+  minio_dev_data:
+    driver: local
+
+networks:
+  jewellery_dev_network:
+    driver: bridge

@@ -98,13 +98,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if item already in cart
-    const existingItem = await prisma.cartItem.findUnique({
+    // Check if item already in cart (without variant)
+    // Note: Using findFirst because the unique constraint includes variantId
+    const existingItem = await prisma.cartItem.findFirst({
       where: {
-        userId_productId: {
-          userId: user.id,
-          productId,
-        },
+        userId: user.id,
+        productId,
+        variantId: null, // Only match items without variants for now
       },
     });
 

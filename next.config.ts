@@ -45,6 +45,8 @@ const nextConfig: NextConfig = {
         hostname: 'localhost',
       },
     ],
+    // Allow images from our own API routes
+    unoptimized: false,
   },
   headers: async () => {
     return [

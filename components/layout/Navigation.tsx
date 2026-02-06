@@ -27,15 +27,24 @@ export default function Navigation({ isOpen = false, onClose }: NavigationProps)
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        // Public GET /api/v1/categories?tree=true (no auth required)
         const response = await apiClient.get<CategoryNode[]>("/categories", { tree: "true" });
-        if (response.success && response.data) {
-          // Only show categories explicitly marked for navigation and active
-          const navCategories = response.data.filter((cat) => cat.showInNav);
-          setCategories(navCategories);
+        
+        if (response.success && response.data && Array.isArray(response.data)) {
+          // Sort by navOrder (categories with showInNav=true will have navOrder set)
+          // Categories without navOrder will default to 0 and appear first
+          const sortedCategories = response.data.sort((a, b) => {
+            const navOrderA = (a as any).navOrder ?? 999;
+            const navOrderB = (b as any).navOrder ?? 999;
+            return navOrderA - navOrderB;
+          });
+          
+          setCategories(sortedCategories);
+        } else {
+          setCategories([]);
         }
       } catch (error) {
         console.error("Failed to load navigation categories:", error);
+        setCategories([]);
       }
     };
 

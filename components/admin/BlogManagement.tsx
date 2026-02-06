@@ -110,6 +110,17 @@ export default function BlogManagement() {
     const [editingBlog, setEditingBlog] = useState<Blog | null>(null);
     const [formData, setFormData] = useState<BlogFormData>(initialFormData);
     const [submitting, setSubmitting] = useState(false);
+    
+    // Pagination state
+    const [page, setPage] = useState(1);
+    const [limit] = useState(20); // Fixed limit per page
+    const [total, setTotal] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
+    
+    // Search and filter state
+    const [searchQuery, setSearchQuery] = useState("");
+    const [publishedFilter, setPublishedFilter] = useState<string>("all");
+    const [categoryFilter, setCategoryFilter] = useState<string>("all");
 
     // Image upload states
     const [uploadingImage, setUploadingImage] = useState(false);
@@ -122,28 +133,59 @@ export default function BlogManagement() {
         }
     }, [user]);
 
+    // Refetch blogs when page, search, or filters change
+    useEffect(() => {
+        if (user?.role === "ADMIN") {
+            fetchBlogs();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user, page, searchQuery, publishedFilter, categoryFilter]);
+
     const fetchBlogs = async () => {
         try {
             setLoading(true);
-            const response = await fetch("/api/v1/blogs?limit=100");
-            if (!response.ok) {
-                console.error("Failed to fetch blogs:", response.statusText);
-                toast.error("Failed to load blogs");
-                return;
+            
+            // Build query parameters
+            const params: Record<string, string> = {
+                page: page.toString(),
+                limit: limit.toString(),
+            };
+
+            // Add search query if provided
+            if (searchQuery.trim()) {
+                params.search = searchQuery.trim();
             }
-            const contentType = response.headers.get("content-type");
-            if (!contentType || !contentType.includes("application/json")) {
-                console.error("Blogs endpoint returned non-JSON response");
-                toast.error("Failed to load blogs");
-                return;
+
+            // Add published filter if not "all"
+            if (publishedFilter !== "all") {
+                params.published = publishedFilter === "published" ? "true" : "false";
             }
-            const data = await response.json();
-            if (data.success) {
-                setBlogs(data.data);
+
+            // Add category filter if not "all"
+            if (categoryFilter !== "all") {
+                params.category = categoryFilter;
             }
-        } catch (error) {
+
+            const response = await apiClient.get<Blog[]>("/blogs", params);
+            if (response.success && response.data) {
+                setBlogs(response.data);
+                
+                // Update pagination metadata
+                if (response.meta) {
+                    setTotal(response.meta.total || 0);
+                    setTotalPages(response.meta.totalPages || 0);
+                } else {
+                    // Fallback: calculate from results
+                    const blogCount = response.data?.length || 0;
+                    setTotal(blogCount);
+                    setTotalPages(Math.ceil(blogCount / limit));
+                }
+            } else {
+                toast.error(response.error || "Failed to load blogs");
+            }
+        } catch (error: any) {
             console.error("Failed to fetch blogs:", error);
-            toast.error("Failed to load blogs");
+            toast.error(error.message || "Failed to load blogs");
         } finally {
             setLoading(false);
         }
@@ -198,8 +240,10 @@ export default function BlogManagement() {
     const generateSlug = (title: string) => {
         return title
             .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "-")
-            .replace(/(^-|-$)/g, "");
+            .trim()
+            .replace(/[^\w\s-]/g, '')
+            .replace(/[\s_-]+/g, '-')
+            .replace(/^-+|-+$/g, '');
     };
 
     const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -320,7 +364,8 @@ export default function BlogManagement() {
                 .map((tag) => tag.trim())
                 .filter((tag) => tag);
 
-            const blogData = {
+            // Prepare blog data
+            const blogData: any = {
                 title: formData.title.trim(),
                 slug: formData.slug.trim(),
                 excerpt: formData.excerpt.trim(),
@@ -331,9 +376,28 @@ export default function BlogManagement() {
                 readTime: formData.readTime?.trim() || undefined,
                 tags: tagsArray,
                 published: formData.published,
-                publishedAt: formData.published ? new Date().toISOString() : undefined,
                 faqs: formData.faqs.filter((faq) => faq.question && faq.answer),
             };
+
+            // Handle publishedAt - only set if publishing for the first time or changing published status
+            if (editingBlog) {
+                // When updating, only set publishedAt if:
+                // 1. Changing from unpublished to published
+                // 2. Or if already published and we want to keep it published (don't change publishedAt)
+                if (formData.published && !editingBlog.published) {
+                    // Changing from draft to published
+                    blogData.publishedAt = new Date().toISOString();
+                } else if (!formData.published) {
+                    // Changing to draft - clear publishedAt
+                    blogData.publishedAt = null;
+                }
+                // If already published and staying published, don't send publishedAt to preserve original date
+            } else {
+                // Creating new blog
+                if (formData.published) {
+                    blogData.publishedAt = new Date().toISOString();
+                }
+            }
 
             let response;
             if (editingBlog) {
@@ -349,11 +413,28 @@ export default function BlogManagement() {
                 handleCloseDialog();
                 fetchBlogs();
             } else {
-                toast.error(response.error || "Failed to save blog");
+                // Handle validation errors from backend
+                const errorMessage = response.error || "Failed to save blog";
+                if (response.errors && Array.isArray(response.errors)) {
+                    // Multiple validation errors
+                    response.errors.forEach((err: any) => {
+                        toast.error(err.message || err.path || "Validation error");
+                    });
+                } else {
+                    toast.error(errorMessage);
+                }
             }
         } catch (error: any) {
             console.error("Error saving blog:", error);
-            toast.error(error.message || "Failed to save blog");
+            // Handle Zod validation errors
+            if (error.errors && Array.isArray(error.errors)) {
+                error.errors.forEach((err: any) => {
+                    const field = err.path?.join('.') || 'field';
+                    toast.error(`${field}: ${err.message}`);
+                });
+            } else {
+                toast.error(error.message || "Failed to save blog");
+            }
         } finally {
             setSubmitting(false);
         }
@@ -390,20 +471,50 @@ export default function BlogManagement() {
         <div className="space-y-6">
             <Card>
                 <CardHeader>
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                         <div>
-                            <CardTitle>Blog Management</CardTitle>
-                            <CardDescription>
+                            <CardTitle className="text-xl sm:text-2xl">Blog Management</CardTitle>
+                            <CardDescription className="text-xs sm:text-sm">
                                 Add, edit, or remove blog posts from your website
                             </CardDescription>
                         </div>
-                        <Button onClick={() => handleOpenDialog()}>
+                        <Button onClick={() => handleOpenDialog()} size="sm" className="w-full sm:w-auto">
                             <Plus className="h-4 w-4 mr-2" />
                             Add Blog
                         </Button>
                     </div>
                 </CardHeader>
                 <CardContent>
+                    {/* Search and Filters */}
+                    <div className="mb-6 space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div className="sm:col-span-2">
+                                <Input
+                                    placeholder="Search blogs by title, content, or author..."
+                                    value={searchQuery}
+                                    onChange={(e) => {
+                                        setSearchQuery(e.target.value);
+                                        setPage(1); // Reset to first page on search
+                                    }}
+                                    className="w-full"
+                                />
+                            </div>
+                            <Select value={publishedFilter} onValueChange={(value) => {
+                                setPublishedFilter(value);
+                                setPage(1); // Reset to first page on filter change
+                            }}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Filter by status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Status</SelectItem>
+                                    <SelectItem value="published">Published</SelectItem>
+                                    <SelectItem value="draft">Draft</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+
                     {loading ? (
                         <div className="text-center py-8">
                             <p className="text-muted-foreground">Loading blogs...</p>
@@ -411,16 +522,21 @@ export default function BlogManagement() {
                     ) : blogs.length === 0 ? (
                         <div className="text-center py-8">
                             <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                            <p className="text-lg font-semibold mb-2">No blogs yet</p>
+                            <p className="text-lg font-semibold mb-2">No blogs found</p>
                             <p className="text-muted-foreground mb-4">
-                                Get started by adding your first blog post
+                                {searchQuery || publishedFilter !== "all"
+                                    ? "Try adjusting your search or filters"
+                                    : "Get started by adding your first blog post"}
                             </p>
-                            <Button onClick={() => handleOpenDialog()}>
-                                <Plus className="h-4 w-4 mr-2" />
-                                Add Blog
-                            </Button>
+                            {!searchQuery && publishedFilter === "all" && (
+                                <Button onClick={() => handleOpenDialog()}>
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Add Blog
+                                </Button>
+                            )}
                         </div>
                     ) : (
+                        <>
                         <div className="rounded-md border overflow-x-auto">
                             <Table>
                                 <TableHeader>
@@ -485,12 +601,45 @@ export default function BlogManagement() {
                                 </TableBody>
                             </Table>
                         </div>
+                        
+                        {/* Pagination Controls */}
+                        {totalPages > 1 && (
+                            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-4 border-t">
+                                <p className="text-xs sm:text-sm text-muted-foreground text-center sm:text-left">
+                                    Showing {((page - 1) * limit) + 1} to {Math.min(page * limit, total)} of {total} blogs
+                                </p>
+                                <div className="flex gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                        disabled={page === 1 || loading}
+                                    >
+                                        Previous
+                                    </Button>
+                                    <div className="flex items-center gap-2 px-4">
+                                        <span className="text-sm text-muted-foreground">
+                                            Page {page} of {totalPages}
+                                        </span>
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                                        disabled={page === totalPages || loading}
+                                    >
+                                        Next
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+                        </>
                     )}
                 </CardContent>
             </Card>
 
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
                     <DialogHeader>
                         <DialogTitle>
                             {editingBlog ? "Edit Blog" : "Add New Blog"}
@@ -502,7 +651,7 @@ export default function BlogManagement() {
                         </DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleSubmit} className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="col-span-2">
                                 <Label htmlFor="title">Title *</Label>
                                 <Input

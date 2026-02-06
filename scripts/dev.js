@@ -5,6 +5,7 @@
 
 const { execSync } = require('child_process');
 const path = require('path');
+const fs = require('fs');
 
 // Unblock binaries first
 try {
@@ -13,9 +14,48 @@ try {
   console.log('⚠️  Could not unblock binaries automatically. Continuing anyway...\n');
 }
 
+// Root-level fix: Clear Next.js cache to prevent stale file references
+// This fixes issues where Tailwind's file watcher tries to stat deleted files
+const projectRoot = path.resolve(__dirname, '..');
+const nextCachePath = path.join(projectRoot, '.next');
+if (fs.existsSync(nextCachePath)) {
+  try {
+    // Clear the cache directory to remove stale file references
+    // This prevents Tailwind from trying to stat deleted files
+    // Use fs.rmSync (Node 14.14+) for recursive deletion
+    if (fs.rmSync) {
+      fs.rmSync(nextCachePath, { recursive: true, force: true });
+      console.log('🧹 Cleared Next.js cache to remove stale file references\n');
+    } else {
+      // Fallback for older Node versions - delete files recursively
+      const deleteRecursive = (dirPath) => {
+        if (fs.existsSync(dirPath)) {
+          fs.readdirSync(dirPath).forEach((file) => {
+            const curPath = path.join(dirPath, file);
+            if (fs.lstatSync(curPath).isDirectory()) {
+              deleteRecursive(curPath);
+            } else {
+              fs.unlinkSync(curPath);
+            }
+          });
+          fs.rmdirSync(dirPath);
+        }
+      };
+      deleteRecursive(nextCachePath);
+      console.log('🧹 Cleared Next.js cache to remove stale file references\n');
+    }
+  } catch (error) {
+    // If cache clearing fails, log but continue - Next.js will handle it
+    // The dev server will work, but may show warnings about missing files
+    console.log('⚠️  Could not clear cache automatically. If you see file errors, delete .next folder manually.\n');
+  }
+}
+
 const env = {
   ...process.env,
   NEXT_TELEMETRY_DISABLED: '1',
+  // Force Tailwind to re-scan content on dev server start
+  TAILWIND_MODE: 'watch',
 };
 
 console.log('🚀 Starting dev server...\n');
