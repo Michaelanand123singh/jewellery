@@ -4,6 +4,7 @@
 
 import { prisma } from '@/src/infrastructure/database/prisma';
 import { Product, ProductFilters, ProductSort, PaginationParams, ProductDimensions } from '../types/product.types';
+import { AppError } from '@/src/shared/utils/errors';
 
 export class ProductRepository {
   async findById(id: string): Promise<Product | null> {
@@ -35,9 +36,20 @@ export class ProductRepository {
   async findMany(
     filters?: ProductFilters,
     sort?: ProductSort,
-    pagination?: PaginationParams
+    pagination?: PaginationParams,
+    includeDraft: boolean = false
   ): Promise<{ products: Product[]; total: number }> {
     const where: any = {};
+
+    // Filter by status
+    if (filters?.status) {
+      // If status filter is explicitly provided, use it
+      where.status = filters.status;
+    } else if (!includeDraft) {
+      // If no status filter and not admin, only show PUBLISHED products
+      where.status = 'PUBLISHED';
+    }
+    // If includeDraft is true and no status filter, show all statuses (admin view)
 
     if (filters?.category) {
       // Use startsWith to match categories like "women-rings" when filtering by "women"
@@ -237,9 +249,30 @@ export class ProductRepository {
   }
 
   async delete(id: string): Promise<void> {
-    await prisma.product.delete({
-      where: { id },
+    // Check if product has any order items (foreign key constraint)
+    const orderItemCount = await prisma.orderItem.count({
+      where: { productId: id },
     });
+
+    if (orderItemCount > 0) {
+      throw new AppError(
+        `Cannot delete product: It has been ordered ${orderItemCount} time(s). Products with order history cannot be deleted to maintain data integrity. Consider archiving the product instead by changing its status to ARCHIVED.`,
+        409,
+        'PRODUCT_HAS_ORDERS'
+      );
+    }
+
+    // Clean up related data that can be safely deleted
+    await Promise.all([
+      prisma.cartItem.deleteMany({ where: { productId: id } }),
+      prisma.wishlistItem.deleteMany({ where: { productId: id } }),
+      prisma.productVariant.deleteMany({ where: { productId: id } }),
+      prisma.productAttribute.deleteMany({ where: { productId: id } }),
+      prisma.$executeRaw`DELETE FROM "_ProductToProductTag" WHERE "A" = ${id}`,
+    ]);
+
+    // Delete the product
+    await prisma.product.delete({ where: { id } });
   }
 
   async updateStock(id: string, quantity: number): Promise<Product> {

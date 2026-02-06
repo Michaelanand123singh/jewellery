@@ -21,10 +21,35 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
 
+    // Check if user is admin - admins can see all blogs
+    let isAdmin = false;
+    try {
+      const { getAuthUser } = await import('@/lib/auth');
+      const user = await getAuthUser(request);
+      isAdmin = user?.role === 'ADMIN';
+    } catch {
+      // User is not authenticated - will only see published blogs
+    }
+
+    // For non-admin users, default to published=true if not explicitly set
+    const publishedParam = searchParams.get('published');
+    let publishedFilter: boolean | undefined;
+    
+    if (publishedParam === 'true') {
+      publishedFilter = true;
+    } else if (publishedParam === 'false') {
+      // Only admins can explicitly request unpublished blogs
+      publishedFilter = isAdmin ? false : undefined;
+    } else if (!isAdmin) {
+      // Non-admin users default to published blogs only
+      publishedFilter = true;
+    }
+    // If admin and no published param, show all blogs (undefined = no filter)
+
     const filters = {
       category: searchParams.get('category') || undefined,
       search: searchParams.get('search') || undefined,
-      published: searchParams.get('published') === 'true' ? true : searchParams.get('published') === 'false' ? false : undefined,
+      published: publishedFilter,
       author: searchParams.get('author') || undefined,
     };
 

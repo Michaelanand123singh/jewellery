@@ -187,6 +187,121 @@ export class UserRepository {
     return { users: usersWithStats, total };
   }
 
+  /**
+   * Find all users for export with optimized batch aggregation
+   * Uses batch queries instead of per-user queries for better performance
+   */
+  async findAllForExport(filters?: UserFilters, sort?: UserSort) {
+    const where: any = {};
+
+    if (filters?.role) {
+      where.role = filters.role;
+    }
+
+    if (filters?.provider) {
+      where.provider = filters.provider;
+    }
+
+    if (filters?.startDate || filters?.endDate) {
+      where.createdAt = {};
+      if (filters.startDate) {
+        where.createdAt.gte = filters.startDate;
+      }
+      if (filters.endDate) {
+        where.createdAt.lte = filters.endDate;
+      }
+    }
+
+    if (filters?.search) {
+      where.OR = [
+        { name: { contains: filters.search, mode: 'insensitive' } },
+        { email: { contains: filters.search, mode: 'insensitive' } },
+        { phone: { contains: filters.search, mode: 'insensitive' } },
+      ];
+    }
+
+    if (filters?.hasOrders !== undefined) {
+      if (filters.hasOrders) {
+        where.orders = { some: {} };
+      } else {
+        where.orders = { none: {} };
+      }
+    }
+
+    const orderBy: any = {};
+    if (sort?.sortBy === 'name') {
+      orderBy.name = sort.sortOrder || 'asc';
+    } else if (sort?.sortBy === 'email') {
+      orderBy.email = sort.sortOrder || 'asc';
+    } else {
+      orderBy.createdAt = sort?.sortOrder || 'desc';
+    }
+
+    // Fetch all users with counts (no pagination for export)
+    const users = await prisma.user.findMany({
+      where,
+      orderBy,
+      include: {
+        _count: {
+          select: {
+            orders: true,
+            addresses: true,
+            cartItems: true,
+            wishlistItems: true,
+            reviews: true,
+          },
+        },
+      },
+    });
+
+    // Batch aggregate total spent for all users at once
+    const userIds = users.map((u) => u.id);
+    const totalSpentMap = new Map<string, number>();
+
+    if (userIds.length > 0) {
+      // Use groupBy to get total spent for all users in one query
+      const orderTotals = await prisma.order.groupBy({
+        by: ['userId'],
+        where: {
+          userId: { in: userIds },
+          status: {
+            in: ['DELIVERED', 'CONFIRMED', 'PROCESSING', 'SHIPPED'],
+          },
+        },
+        _sum: {
+          total: true,
+        },
+      });
+
+      // Build map of userId -> totalSpent
+      orderTotals.forEach((item) => {
+        totalSpentMap.set(item.userId, item._sum.total || 0);
+      });
+    }
+
+    // Map users with their total spent
+    const usersWithStats = users.map((user) => ({
+      ...user,
+      totalSpent: totalSpentMap.get(user.id) || 0,
+      lastOrderDate: null, // Not needed for export
+    }));
+
+    // Sort by totalSpent if needed (after aggregation)
+    if (sort?.sortBy === 'totalSpent') {
+      usersWithStats.sort((a, b) => {
+        const diff = b.totalSpent - a.totalSpent;
+        return sort.sortOrder === 'asc' ? -diff : diff;
+      });
+    } else if (sort?.sortBy === 'orderCount') {
+      usersWithStats.sort((a, b) => {
+        const diff = (b._count.orders || 0) - (a._count.orders || 0);
+        return sort.sortOrder === 'asc' ? -diff : diff;
+      });
+    }
+
+    return { users: usersWithStats, total: usersWithStats.length };
+  }
+
   async create(data: {
     email: string;
     password?: string | null;

@@ -17,7 +17,9 @@ export class WishlistService {
   }
 
   async getWishlist(userId: string): Promise<WishlistItem[]> {
-    return this.wishlistRepository.findByUserId(userId);
+    const wishlistItems = await this.wishlistRepository.findByUserId(userId);
+    // Transform product image URLs
+    return wishlistItems.map(item => this.transformWishlistItemImages(item));
   }
 
   async addToWishlist(userId: string, productId: string): Promise<WishlistItem> {
@@ -33,7 +35,54 @@ export class WishlistService {
       throw new ValidationError('Product already in wishlist');
     }
 
-    return this.wishlistRepository.create({ userId, productId });
+    const item = await this.wishlistRepository.create({ userId, productId });
+    return this.transformWishlistItemImages(item);
+  }
+
+  /**
+   * Transform product image URLs in wishlist items
+   */
+  private transformWishlistItemImages(item: WishlistItem): WishlistItem {
+    return {
+      ...item,
+      product: {
+        ...item.product,
+        image: item.product.image ? this.transformImageUrl(item.product.image) : item.product.image,
+      },
+    };
+  }
+
+  /**
+   * Transform image URL to use proxy for frontend access
+   */
+  private transformImageUrl(url: string): string {
+    if (!url) return url;
+    
+    // Check if it's a MinIO URL
+    const config = {
+      publicUrl: process.env.MINIO_PUBLIC_URL || 'http://localhost:9000',
+      bucketName: process.env.MINIO_BUCKET_NAME || 'products',
+    };
+    
+    if (url.includes(config.publicUrl) || url.includes('/' + config.bucketName + '/')) {
+      // Import dynamically to avoid circular dependencies
+      const { getProxyUrl } = require('@/lib/storage');
+      return getProxyUrl(url);
+    }
+    
+    // For relative paths starting with /, assume they're already proxy URLs or public paths
+    if (url.startsWith('/')) {
+      return url;
+    }
+    
+    // For external URLs (http/https), return as-is
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    
+    // For storage keys without URL, convert to proxy URL
+    const { getProxyUrl } = require('@/lib/storage');
+    return getProxyUrl(url);
   }
 
   async removeFromWishlist(userId: string, productId: string): Promise<void> {

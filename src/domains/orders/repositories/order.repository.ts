@@ -235,6 +235,14 @@ export class OrderRepository {
           },
         },
         address: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+          },
+        },
       },
     }) as Promise<Order>;
   }

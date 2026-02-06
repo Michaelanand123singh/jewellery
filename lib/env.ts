@@ -34,6 +34,19 @@ const envSchema = z.object({
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
   GOOGLE_REDIRECT_URI: z.string().optional(),
+  // Redis configuration (optional - for caching and rate limiting)
+  REDIS_URL: z.string().optional(),
+  REDIS_HOST: z.string().optional(),
+  REDIS_PORT: z.string().optional(),
+  REDIS_PASSWORD: z.string().optional(),
+  // MinIO configuration (optional - for file storage)
+  MINIO_ENDPOINT: z.string().optional(),
+  MINIO_PORT: z.string().optional(),
+  MINIO_USE_SSL: z.string().optional(),
+  MINIO_ACCESS_KEY: z.string().optional(),
+  MINIO_SECRET_KEY: z.string().optional(),
+  MINIO_BUCKET_NAME: z.string().optional(),
+  MINIO_PUBLIC_URL: z.string().optional(),
 });
 
 export const env = envSchema.parse(process.env);

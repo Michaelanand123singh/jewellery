@@ -91,15 +91,16 @@ export function CategoryManagement() {
   const fetchCategories = async () => {
     setLoading(true);
     try {
-      // apiClient already prefixes with /api/v1, so use a relative path
-      // Query params must be string/number for apiClient
       const response = await apiClient.get<Category[]>("/categories", { tree: "true" });
       if (response.success && response.data) {
         setCategories(response.data);
+      } else {
+        setCategories([]);
       }
     } catch (error) {
       console.error("Error fetching categories:", error);
       toast.error("Failed to load categories");
+      setCategories([]);
     } finally {
       setLoading(false);
     }
@@ -232,14 +233,14 @@ export function CategoryManagement() {
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <CardTitle>Categories</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-lg sm:text-xl">Categories</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">
                 Manage product categories and subcategories
               </CardDescription>
             </div>
-            <Button onClick={() => { resetForm(); setDialogOpen(true); }}>
+            <Button onClick={() => { resetForm(); setDialogOpen(true); }} size="sm" className="w-full sm:w-auto">
               <Plus className="mr-2 h-4 w-4" />
               Add Category
             </Button>
@@ -280,7 +281,7 @@ export function CategoryManagement() {
       </Card>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle>
               {editingCategory ? "Edit Category" : "Create Category"}
