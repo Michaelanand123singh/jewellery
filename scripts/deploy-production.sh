@@ -20,9 +20,12 @@ git reset --hard origin/main
 
 # Install dependencies
 echo "📦 Installing dependencies..."
-if ! npm ci --production=false; then
-    echo "❌ Failed to install dependencies"
-    exit 1
+if ! npm ci --legacy-peer-deps --production=false; then
+    echo "⚠️ npm ci failed, trying npm install..."
+    if ! npm install --legacy-peer-deps --production=false; then
+        echo "❌ Failed to install dependencies"
+        exit 1
+    fi
 fi
 
 # Verify Next.js is installed
