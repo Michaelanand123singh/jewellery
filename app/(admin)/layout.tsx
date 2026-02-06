@@ -61,7 +61,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         </aside>
         <main
           className={cn(
-            "flex-1 pt-16 md:pt-4 transition-all duration-300",
+            "flex-1 pt-16 md:pt-4 transition-all duration-300 overflow-x-hidden",
             isOpen ? "md:pl-64" : "md:pl-16"
           )}
         >
